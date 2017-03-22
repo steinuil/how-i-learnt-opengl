@@ -1,4 +1,5 @@
-#include <iostream>
+#include <stdio.h>
+
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
 
@@ -20,10 +21,10 @@ int main(void) {
     glfwWindowHint(GLFW_RESIZABLE, GL_FALSE);
 
     // Can make the window fullscreen by passing a monitor as the 4th argument
-    window = glfwCreateWindow(800, 600, "Triangles", nullptr, nullptr);
+    window = glfwCreateWindow(800, 600, "Triangles", NULL, NULL);
 
-    if (window == nullptr) {
-      std::cout << "rip glfw window" << std::endl;
+    if (window == NULL) {
+      printf("rip glfw window\n");
       glfwTerminate();
       return -1;
     }
@@ -55,54 +56,47 @@ int main(void) {
     GLchar infoLog[512];
     GLuint vertexShader = glCreateShader(GL_VERTEX_SHADER);
 
-    { const GLchar* vertexShaderSource = R"(
-      #version 330 core
+    { const GLchar* vertexShaderSource =
+        "#version 330 core\n"
+        "layout (location = 0) in vec3 position;\n"
+        "void main() {"
+          "gl_Position = vec4(position.x, position.y, position.z, 1.0);"
+        "}";
 
-      layout (location = 0) in vec3 position;
-
-      void main() {
-        gl_Position = vec4(position.x, position.y, position.z, 1.0);
-      }
-      )";
-
-      glShaderSource(vertexShader, 1, &vertexShaderSource, nullptr);
+      glShaderSource(vertexShader, 1, &vertexShaderSource, NULL);
       glCompileShader(vertexShader);
 
       glGetShaderiv(vertexShader, GL_COMPILE_STATUS, &success);
       if (!success) {
-        glGetShaderInfoLog(vertexShader, 512, nullptr, infoLog);
-        std::cout << "rip vertex shader" << std::endl << infoLog << std::endl;
+        glGetShaderInfoLog(vertexShader, 512, NULL, infoLog);
+        printf("rip vertex shader\n%s", infoLog);
       }
     }
 
     { GLuint fragmentShaders[2];
       const GLchar* fragShaderSources[2] = {
-        R"(#version 330 core
-        out vec4 color;
-
-        void main() {
-          color = vec4(1.0f, 0.5f, 0.2f, 1.0f);
-        }
-        )",
-        R"(#version 330 core
-        out vec4 color;
-
-        void main() {
-          color = vec4(0.2f, 1.0f, 0.2f, 1.0f);
-        }
-        )"
+        "#version 330 core\n"
+        "out vec4 color;\n"
+        "void main() {"
+         "color = vec4(1.0f, 0.5f, 0.2f, 1.0f);"
+        "}",
+        "#version 330 core\n"
+        "out vec4 color;\n"
+        "void main() {"
+          "color = vec4(0.2f, 1.0f, 0.2f, 1.0f);"
+        "}"
       };
 
       for (int i = 0; i < 2; i++) {
         fragmentShaders[i] = glCreateShader(GL_FRAGMENT_SHADER);
 
-        glShaderSource(fragmentShaders[i], 1, &fragShaderSources[i], nullptr);
+        glShaderSource(fragmentShaders[i], 1, &fragShaderSources[i], NULL);
         glCompileShader(fragmentShaders[i]);
 
         glGetShaderiv(fragmentShaders[i], GL_COMPILE_STATUS, &success);
         if (!success) {
-          glGetShaderInfoLog(fragmentShaders[i], 512, nullptr, infoLog);
-          std::cout << "rip fragment shader" << std::endl << infoLog << std::endl;
+          glGetShaderInfoLog(fragmentShaders[i], 512, NULL, infoLog);
+          printf("rip fragment shader\n%s", infoLog);
         }
 
         // Link shaders
@@ -114,8 +108,8 @@ int main(void) {
 
         glGetProgramiv(shaders[i], GL_LINK_STATUS, &success);
         if (!success) {
-          glGetShaderInfoLog(fragmentShaders[i], 512, nullptr, infoLog);
-          std::cout << "rip shader program" << std::endl << infoLog << std::endl;
+          glGetShaderInfoLog(fragmentShaders[i], 512, NULL, infoLog);
+          printf("rip shader program\n%s", infoLog);
         }
 
         glDeleteShader(fragmentShaders[i]);
@@ -156,7 +150,7 @@ int main(void) {
       glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
       glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
 
-      glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), static_cast<GLvoid*>(nullptr));
+      glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), (GLvoid*)NULL);
       glEnableVertexAttribArray(0);
       glBindVertexArray(0);
     }
@@ -171,7 +165,7 @@ int main(void) {
       glBindBuffer(GL_ARRAY_BUFFER, VBOs[1]);
       glBufferData(GL_ARRAY_BUFFER, sizeof(vertices2), vertices2, GL_STATIC_DRAW);
 
-      glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), static_cast<GLvoid*>(nullptr));
+      glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), (GLvoid*)NULL);
       glEnableVertexAttribArray(0);
       glBindVertexArray(0);
     }
