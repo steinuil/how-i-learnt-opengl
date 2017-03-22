@@ -1,21 +1,21 @@
 require 'rake/clean'
 
-task :default => 'test'
+task :default => 'triangles'
 
 desc 'Compile the file and run it'
-task :run => 'test' do
-  sh './test'
+task :run => 'triangles' do
+  sh './triangles'
 end
 
-file 'test.o' => 'test.cpp' do |t|
+file 'triangles.o' => 'triangles.cpp' do |t|
   warnings = %w[ all extra no-unused-parameter ].map { |w| '-W' + w }
   includes = %w[ /usr/include/c++/v1 /usr/local/include ].map { |i| '-I' + i }
 
   sh 'clang++', '-cc1', '-emit-obj', '-o', t.name, '-std=c++11', *warnings, *t.prerequisites, *includes
 end
-CLEAN << 'test.o'
+CLEAN << 'triangles.o'
 
-file 'test' => 'test.o' do |t|
+file 'triangles' => 'triangles.o' do |t|
   libraries = [
     'c',       # C standard library
     'm',       # C math library
@@ -39,4 +39,4 @@ file 'test' => 'test.o' do |t|
 
   sh 'ld', '-o', t.name, *before_crt, *t.prerequisites, *paths, *libraries, *after_crt
 end
-CLOBBER << 'test'
+CLOBBER << 'triangles'
