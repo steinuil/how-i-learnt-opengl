@@ -7,15 +7,49 @@ task :run => 'triangles' do
   sh './triangles'
 end
 
-file 'triangles.o' => 'triangles.cpp' do |t|
+# C version
+file 'triangles.o' => 'triangles.c' do |t|
+  warnings = %w[ all extra no-unused-parameter ].map { |w| '-W' + w }
+  includes = %w[ /usr/local/include ].map { |i| '-I' + i }
+
+  sh 'clang', '-cc1', '-emit-obj', '-o', t.name, '-std=c11', *warnings, *t.prerequisites, *includes
+end
+CLEAN << 'triangles.o'
+
+file 'triangles' => 'triangles.o' do |t|
+  libraries = [
+    'c',       # C standard library
+    'm',       # C math library
+
+    'GL',
+    'GLEW',
+    'glfw3',
+
+    'X11',
+    'Xxf86vm', # XFree86 Video Mode Extension Library
+    'Xcursor', # Cursor management library
+    'Xi',      # XInput Device Extension Library
+    'Xinerama',
+    'Xrandr',
+  ].map { |l| '-l' + l }
+  paths = %w[ /usr/local/lib ].map { |l| '-L' + l }
+  before_crt = %w[ /usr/lib/crt1.o /usr/lib/crti.o ]
+  after_crt = %w[ /usr/lib/crtn.o ]
+
+  sh 'ld', '-o', t.name, *before_crt, *t.prerequisites, *paths, *libraries, *after_crt
+end
+CLOBBER << 'triangles'
+
+# C++ version
+file 'trianglespp.o' => 'triangles.cpp' do |t|
   warnings = %w[ all extra no-unused-parameter ].map { |w| '-W' + w }
   includes = %w[ /usr/include/c++/v1 /usr/local/include ].map { |i| '-I' + i }
 
   sh 'clang++', '-cc1', '-emit-obj', '-o', t.name, '-std=c++11', *warnings, *t.prerequisites, *includes
 end
-CLEAN << 'triangles.o'
+CLEAN << 'trianglespp.o'
 
-file 'triangles' => 'triangles.o' do |t|
+file 'trianglespp' => 'trianglespp.o' do |t|
   libraries = [
     'c',       # C standard library
     'm',       # C math library
@@ -39,38 +73,4 @@ file 'triangles' => 'triangles.o' do |t|
 
   sh 'ld', '-o', t.name, *before_crt, *t.prerequisites, *paths, *libraries, *after_crt
 end
-CLOBBER << 'triangles'
-
-
-
-file 'triangles2.o' => 'triangles.c' do |t|
-  warnings = %w[ all extra no-unused-parameter ].map { |w| '-W' + w }
-  includes = %w[ /usr/local/include ].map { |i| '-I' + i }
-
-  sh 'clang', '-cc1', '-emit-obj', '-o', t.name, '-std=c11', *warnings, *t.prerequisites, *includes
-end
-CLEAN << 'triangles2.o'
-
-file 'triangles2' => 'triangles2.o' do |t|
-  libraries = [
-    'c',       # C standard library
-    'm',       # C math library
-
-    'GL',
-    'GLEW',
-    'glfw3',
-
-    'X11',
-    'Xxf86vm', # XFree86 Video Mode Extension Library
-    'Xcursor', # Cursor management library
-    'Xi',      # XInput Device Extension Library
-    'Xinerama',
-    'Xrandr',
-  ].map { |l| '-l' + l }
-  paths = %w[ /usr/local/lib ].map { |l| '-L' + l }
-  before_crt = %w[ /usr/lib/crt1.o /usr/lib/crti.o ]
-  after_crt = %w[ /usr/lib/crtn.o ]
-
-  sh 'ld', '-o', t.name, *before_crt, *t.prerequisites, *paths, *libraries, *after_crt
-end
-CLOBBER << 'triangles2'
+CLOBBER << 'trianglespp'

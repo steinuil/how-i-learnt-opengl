@@ -1,9 +1,12 @@
 #include <stdio.h>
+#include <stdlib.h>
+#include <errno.h>
 
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
 
-void key_callback(GLFWwindow* window, int key, int scancode, int action, int mode);
+void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mode);
+GLchar* readFile(char *name);
 
 int main(void) {
   // Create window and bind the current context to it
@@ -56,14 +59,12 @@ int main(void) {
     GLchar infoLog[512];
     GLuint vertexShader = glCreateShader(GL_VERTEX_SHADER);
 
-    { const GLchar* vertexShaderSource =
-        "#version 330 core\n"
-        "layout (location = 0) in vec3 position;\n"
-        "void main() {"
-          "gl_Position = vec4(position.x, position.y, position.z, 1.0);"
-        "}";
+    { const GLchar *vertexShaderSource = readFile("shader.vs");
+      if (!vertexShaderSource) {
+        puts("rip vertex shader file");
+      }
 
-      glShaderSource(vertexShader, 1, &vertexShaderSource, NULL);
+      glShaderSource(vertexShader, 1, (const GLchar **)&vertexShaderSource, NULL);
       glCompileShader(vertexShader);
 
       glGetShaderiv(vertexShader, GL_COMPILE_STATUS, &success);
@@ -75,19 +76,15 @@ int main(void) {
 
     { GLuint fragmentShaders[2];
       const GLchar* fragShaderSources[2] = {
-        "#version 330 core\n"
-        "out vec4 color;\n"
-        "void main() {"
-         "color = vec4(1.0f, 0.5f, 0.2f, 1.0f);"
-        "}",
-        "#version 330 core\n"
-        "out vec4 color;\n"
-        "void main() {"
-          "color = vec4(0.2f, 1.0f, 0.2f, 1.0f);"
-        "}"
+        readFile("orange.fs"),
+        readFile("green.fs"),
       };
 
       for (int i = 0; i < 2; i++) {
+        if (!fragShaderSources[i]) {
+          printf("could not open fragment shader %d\n", i);
+        }
+
         fragmentShaders[i] = glCreateShader(GL_FRAGMENT_SHADER);
 
         glShaderSource(fragmentShaders[i], 1, &fragShaderSources[i], NULL);
@@ -96,7 +93,7 @@ int main(void) {
         glGetShaderiv(fragmentShaders[i], GL_COMPILE_STATUS, &success);
         if (!success) {
           glGetShaderInfoLog(fragmentShaders[i], 512, NULL, infoLog);
-          printf("rip fragment shader\n%s", infoLog);
+          printf("rip fragment shader %d\n%s", i, infoLog);
         }
 
         // Link shaders
@@ -109,7 +106,7 @@ int main(void) {
         glGetProgramiv(shaders[i], GL_LINK_STATUS, &success);
         if (!success) {
           glGetShaderInfoLog(fragmentShaders[i], 512, NULL, infoLog);
-          printf("rip shader program\n%s", infoLog);
+          printf("rip shader program %d\n%s", i, infoLog);
         }
 
         glDeleteShader(fragmentShaders[i]);
@@ -173,7 +170,7 @@ int main(void) {
 
 
 
-  glfwSetKeyCallback(window, key_callback);
+  glfwSetKeyCallback(window, keyCallback);
 
   while (!glfwWindowShouldClose(window)) {
     // Won't receive the key callback thing if this doesn't run
@@ -205,7 +202,7 @@ int main(void) {
   return 0;
 }
 
-void key_callback(GLFWwindow* window, int key, int scancode, int action, int mode) {
+void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mode) {
   if (key == GLFW_KEY_Q && action == GLFW_PRESS) {
     glfwSetWindowShouldClose(window, GL_TRUE);
   } else if (key == GLFW_KEY_SPACE && action == GLFW_PRESS) {
@@ -221,4 +218,25 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 
     glPolygonMode(GL_FRONT_AND_BACK, mode);
   }
+}
+
+GLchar* readFile(char *name) {
+  long length;
+  GLchar *buffer;
+
+  // Open file
+  FILE *file = fopen(name, "r");
+  if (!file) return NULL;
+
+  fseek(file, 0, SEEK_END);
+  length = ftell(file);
+  rewind(file);
+
+  buffer = (GLchar *) calloc(sizeof(GLchar), length + 1);
+
+  fread(buffer, sizeof(GLchar), length, file);
+  buffer[length] = '\0';
+  fclose(file);
+
+  return buffer;
 }
