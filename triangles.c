@@ -11,6 +11,8 @@ void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mode
 GLchar* readFile(char *name);
 GLuint* loadShaders(char **files, int fileCount, int *indexes, int shaderCount);
 
+GLuint *shaders;
+
 int main(void) {
   // Create window and bind the current context to it
   GLFWwindow* window;
@@ -56,8 +58,6 @@ int main(void) {
 
 
   // Load shaders
-  GLuint *shaders;
-
   { char *files[] = {
       "shaders/vertex.vs",
       "shaders/texture-vertex.vs",
@@ -116,9 +116,9 @@ int main(void) {
     }
 
     { GLfloat vertices[] = {
-        0.5f, 0.5f, 0.0f,   1.0f, 0.0f, 0.0f,
-        0.5f, -0.5f, 0.0f,  0.0f, 1.0f, 0.0f,
-        0.7f, 0.0f, 0.0f,   0.0f, 0.0f, 1.0f,
+        0.5f, 0.5f, 0.0f,   0.0f, 0.5f, 0.2f,
+        0.5f, -0.5f, 0.0f,  0.0f, 0.5f, 0.2f,
+        0.7f, 0.0f, 0.0f,   0.0f, 1.0f, 0.0f,
       };
 
       glBindVertexArray(VAOs[1]);
@@ -135,9 +135,9 @@ int main(void) {
     }
 
     { GLfloat vertices[] = {
-        0.4f, 0.4f, 0.0f,   1.0f, 0.0f,
-        0.4f, -0.4f, 0.0f,  1.0f, 1.0f,
-        -0.4f, -0.4f, 0.0f, 0.0f, 1.0f,
+        0.4f, 0.4f, 0.0f,   2.0f, 0.0f,
+        0.4f, -0.4f, 0.0f,  2.0f, 2.0f,
+        -0.4f, -0.4f, 0.0f, 0.0f, 2.0f,
         -0.4f, 0.4f, 0.0f,  0.0f, 0.0f,
       };
 
@@ -166,12 +166,13 @@ int main(void) {
 
 
   // Texture stuff
-  GLuint texture;
+  GLuint textures[2];
+
+  glGenTextures(2, textures);
+
   { int width, height;
 
-    glGenTextures(1, &texture);
-
-    glBindTexture(GL_TEXTURE_2D, texture);
+    glBindTexture(GL_TEXTURE_2D, textures[0]);
 
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
@@ -189,9 +190,32 @@ int main(void) {
     SOIL_free_image_data(image);
   }
 
+  { int width, height;
+
+    glBindTexture(GL_TEXTURE_2D, textures[1]);
+
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_MIRRORED_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_MIRRORED_REPEAT);
+
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+    unsigned char *image = SOIL_load_image("watermelon.png", &width, &height, NULL, SOIL_LOAD_RGBA);
+
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, image);
+    glGenerateMipmap(GL_TEXTURE_2D);
+
+    glBindTexture(GL_TEXTURE_2D, 0);
+
+    SOIL_free_image_data(image);
+  }
+
 
 
   glfwSetKeyCallback(window, keyCallback);
+
+  glUseProgram(shaders[2]);
+  glUniform1f(glGetUniformLocation(shaders[2], "blending"), 0.2f);
 
   while (!glfwWindowShouldClose(window)) {
     // Won't receive the key callback thing if this doesn't run
@@ -202,10 +226,6 @@ int main(void) {
     // Set background color
     glClearColor(sin(time * 2), 0.2f, 0.3f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT);
-
-    /*GLfloat greenValue = (sin(time) / 2) + 0.5;
-      GLint vertexColor = glGetUniformLocation(shaders[0], "changeColor");
-      glUniform4f(vertexColor, 0.2f, greenValue, 0.4f, 1.0f);*/
 
     // Draw first thing
     glBindVertexArray(VAOs[0]);
@@ -218,8 +238,16 @@ int main(void) {
     glDrawArrays(GL_TRIANGLES, 0, 3);
 
     // Draw texture triangle
-    glBindTexture(GL_TEXTURE_2D, texture);
     glUseProgram(shaders[2]);
+
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, textures[0]);
+    glUniform1i(glGetUniformLocation(shaders[2], "theTexture"), 0);
+
+    glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_2D, textures[1]);
+    glUniform1i(glGetUniformLocation(shaders[2], "theTexture"), 1);
+
     glBindVertexArray(VAOs[2]);
     glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 
@@ -238,20 +266,50 @@ int main(void) {
 
 
 void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mode) {
-  if (key == GLFW_KEY_Q && action == GLFW_PRESS) {
-    glfwSetWindowShouldClose(window, GL_TRUE);
-  } else if (key == GLFW_KEY_SPACE && action == GLFW_PRESS) {
-    GLint mode;
-
-    glGetIntegerv(GL_POLYGON_MODE, &mode);
-
-    switch(mode) {
-    case GL_LINE: mode = GL_FILL;  break;
-    case GL_FILL: mode = GL_POINT; break;
-    default:      mode = GL_LINE;  break;
+  if (action != GLFW_PRESS) return;
+  switch (key) {
+    case GLFW_KEY_Q: {
+      glfwSetWindowShouldClose(window, GL_TRUE);
+      break;
     }
 
-    glPolygonMode(GL_FRONT_AND_BACK, mode);
+    case GLFW_KEY_SPACE: {
+      GLint mode;
+
+      glGetIntegerv(GL_POLYGON_MODE, &mode);
+
+      switch (mode) {
+      case GL_LINE: mode = GL_FILL;  break;
+      case GL_FILL: mode = GL_POINT; break;
+      default:      mode = GL_LINE;  break;
+      }
+
+      glPolygonMode(GL_FRONT_AND_BACK, mode);
+      break;
+    }
+
+    case GLFW_KEY_UP: {
+      GLint loc = glGetUniformLocation(shaders[2], "blending");
+      GLfloat blending;
+      glGetUniformfv(shaders[2], loc, &blending);
+
+      if (blending < 1.0f) blending += 0.1f;
+
+      glUniform1f(loc, blending);
+      break;
+    }
+
+    case GLFW_KEY_DOWN: {
+      GLint loc = glGetUniformLocation(shaders[2], "blending");
+      GLfloat blending;
+      glGetUniformfv(shaders[2], loc, &blending);
+
+      if (blending > 0.1f) blending -= 0.1f;
+
+      glUniform1f(loc, blending);
+
+      break;
+    }
   }
 }
 
