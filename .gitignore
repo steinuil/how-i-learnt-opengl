@@ -1,2 +1,4 @@
 triangles
 *.o
+*.a
+*.core

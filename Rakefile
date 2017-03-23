@@ -8,15 +8,27 @@ task :run => 'triangles' do
 end
 
 # C version
-file 'triangles.o' => 'triangles.c' do |t|
-  warnings = %w[ all extra no-unused-parameter ].map { |w| '-W' + w }
-  includes = %w[ /usr/local/include ].map { |i| '-I' + i }
-
-  sh 'clang', '-cc1', '-emit-obj', '-o', t.name, '-std=c11', *warnings, *t.prerequisites, *includes
+soil = Dir['lib/SOIL/*.c'].map do |c|
+  Struct.new(:c, :o).new(c, c.sub(/\.c$/, '.o'))
 end
-CLEAN << 'triangles.o'
 
-file 'triangles' => 'triangles.o' do |t|
+soil.map(&:to_a).+([ ['triangles.c', 'triangles.o'] ]).each do |c, o|
+  CLEAN << o
+  file o => c do |t|
+    warnings = %w[ all extra no-unused-parameter ].map { |w| '-W' + w }
+    includes = %w[ /usr/local/include ./include ].map { |i| '-I' + i }
+
+    sh 'clang', '-cc1', '-emit-obj', '-o', t.name, '-std=c11', *warnings, *t.prerequisites, *includes
+  end
+end
+
+CLOBBER << 'SOIL.a'
+file 'SOIL.a' => soil.map(&:o) do |t|
+  sh 'ar', '-r', t.name, *t.prerequisites
+end
+
+CLOBBER << 'triangles'
+file 'triangles' => [ 'triangles.o', 'SOIL.a' ] do |t|
   libraries = [
     'c',       # C standard library
     'm',       # C math library
@@ -38,17 +50,19 @@ file 'triangles' => 'triangles.o' do |t|
 
   sh 'ld', '-o', t.name, *before_crt, *t.prerequisites, *paths, *libraries, *after_crt
 end
-CLOBBER << 'triangles'
+
+
 
 # C++ version
+CLEAN << 'trianglespp.o'
 file 'trianglespp.o' => 'triangles.cpp' do |t|
   warnings = %w[ all extra no-unused-parameter ].map { |w| '-W' + w }
   includes = %w[ /usr/include/c++/v1 /usr/local/include ].map { |i| '-I' + i }
 
   sh 'clang++', '-cc1', '-emit-obj', '-o', t.name, '-std=c++11', *warnings, *t.prerequisites, *includes
 end
-CLEAN << 'trianglespp.o'
 
+CLOBBER << 'trianglespp'
 file 'trianglespp' => 'trianglespp.o' do |t|
   libraries = [
     'c',       # C standard library
@@ -73,4 +87,3 @@ file 'trianglespp' => 'trianglespp.o' do |t|
 
   sh 'ld', '-o', t.name, *before_crt, *t.prerequisites, *paths, *libraries, *after_crt
 end
-CLOBBER << 'trianglespp'

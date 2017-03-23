@@ -5,6 +5,8 @@
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
 
+#include <SOIL.h>
+
 void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mode);
 GLchar* readFile(char *name);
 
@@ -53,13 +55,13 @@ int main(void) {
 
 
   // Shaders
-  GLuint shaders[2];
+  GLuint shaders[3];
 
   { GLint success;
     GLchar infoLog[512];
     GLuint vertexShader = glCreateShader(GL_VERTEX_SHADER);
 
-    const GLchar *vertexShaderSource = readFile("shader.vs");
+    const GLchar *vertexShaderSource = readFile("shaders/vertex.vs");
     if (!vertexShaderSource) {
       puts("rip vertex shader file");
     } else {
@@ -75,11 +77,10 @@ int main(void) {
       free((void *)vertexShaderSource);
     }
     
-
     GLuint fragmentShaders[2];
     const GLchar* fragShaderSources[2] = {
-      readFile("orange.fs"),
-      readFile("green.fs"),
+      readFile("shaders/orange.fs"),
+      readFile("shaders/green.fs"),
     };
 
     for (int i = 0; i < 2; i++) {
@@ -114,20 +115,75 @@ int main(void) {
         glDeleteShader(fragmentShaders[i]);
       }
     }
-    
 
     glDeleteShader(vertexShader);
+  }
+
+  { GLint success;
+    GLchar infoLog[512];
+
+    GLuint vertexShader = glCreateShader(GL_VERTEX_SHADER);
+    GLuint fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
+
+    const GLchar *vertexShaderSource = readFile("shaders/texture-vertex.vs");
+    if (!vertexShaderSource) {
+      puts("rip vertex shader file");
+    } else {
+      glShaderSource(vertexShader, 1, (const GLchar **)&vertexShaderSource, NULL);
+      glCompileShader(vertexShader);
+
+      glGetShaderiv(vertexShader, GL_COMPILE_STATUS, &success);
+      if (!success) {
+        glGetShaderInfoLog(vertexShader, 512, NULL, infoLog);
+        printf("rip vertex shader\n%s", infoLog);
+      }
+
+      free((void *)vertexShaderSource);
+    }
+
+    const GLchar *fragShaderSource = readFile("shaders/texture-frag.fs");
+    if (!fragShaderSource) {
+      printf("could not open fragment shader %d\n", 2);
+    } else {
+      fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
+
+      glShaderSource(fragmentShader, 1, &fragShaderSource, NULL);
+      glCompileShader(fragmentShader);
+
+      glGetShaderiv(fragmentShader, GL_COMPILE_STATUS, &success);
+      if (!success) {
+        glGetShaderInfoLog(fragmentShader, 512, NULL, infoLog);
+        printf("rip fragment shader %d\n%s", 2, infoLog);
+      }
+
+      // Link shaders
+      shaders[2] = glCreateProgram();
+
+      glAttachShader(shaders[2], vertexShader);
+      glAttachShader(shaders[2], fragmentShader);
+      glLinkProgram(shaders[2]);
+
+      glGetProgramiv(shaders[2], GL_LINK_STATUS, &success);
+      if (!success) {
+        glGetShaderInfoLog(fragmentShader, 512, NULL, infoLog);
+        printf("rip shader program %d\n%s", 2, infoLog);
+      }
+
+      free((void *)fragShaderSource);
+      glDeleteShader(fragmentShader);
+      glDeleteShader(vertexShader);
+    }
   }
 
 
 
   // Vertex stuff, I don't know man
-  GLuint VAOs[2];
+  GLuint VAOs[3];
 
-  { GLuint VBOs[2], EBO;
-    glGenVertexArrays(2, VAOs);
-    glGenBuffers(2, VBOs);
-    glGenBuffers(1, &EBO);
+  { GLuint VBOs[3], EBOs[2];
+    glGenVertexArrays(3, VAOs);
+    glGenBuffers(3, VBOs);
+    glGenBuffers(2, EBOs);
 
     { GLfloat vertices[] = {
          0.5f,  0.5f, 0.0f,  // Top Right
@@ -147,7 +203,7 @@ int main(void) {
       glBindBuffer(GL_ARRAY_BUFFER, VBOs[0]);
       glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
 
-      glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+      glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBOs[0]);
       glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
 
       glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), (GLvoid *)NULL);
@@ -155,7 +211,7 @@ int main(void) {
       glBindVertexArray(0);
     }
 
-    { GLfloat vertices2[] = {
+    { GLfloat vertices[] = {
         0.5f, 0.5f, 0.0f,   1.0f, 0.0f, 0.0f,
         0.5f, -0.5f, 0.0f,  0.0f, 1.0f, 0.0f,
         0.7f, 0.0f, 0.0f,   0.0f, 0.0f, 1.0f,
@@ -163,7 +219,7 @@ int main(void) {
 
       glBindVertexArray(VAOs[1]);
       glBindBuffer(GL_ARRAY_BUFFER, VBOs[1]);
-      glBufferData(GL_ARRAY_BUFFER, sizeof(vertices2), vertices2, GL_STATIC_DRAW);
+      glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
 
       glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(GLfloat), (GLvoid *)0);
       glEnableVertexAttribArray(0);
@@ -173,6 +229,60 @@ int main(void) {
 
       glBindVertexArray(0);
     }
+
+    { GLfloat vertices[] = {
+        0.4f, 0.4f, 0.0f,   1.0f, 0.0f,
+        0.4f, -0.4f, 0.0f,  1.0f, 1.0f,
+        -0.4f, -0.4f, 0.0f, 0.0f, 1.0f,
+        -0.4f, 0.4f, 0.0f,  0.0f, 0.0f,
+      };
+
+      GLuint indices[] = {
+        0, 1, 3,
+        1, 2, 3,
+      };
+
+      glBindVertexArray(VAOs[2]);
+      glBindBuffer(GL_ARRAY_BUFFER, VBOs[2]);
+      glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+
+      glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBOs[1]);
+      glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
+
+      glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(GLfloat), (GLvoid *)0);
+      glEnableVertexAttribArray(0);
+
+      glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(GLfloat), (GLvoid *)(3 * sizeof(GLfloat)));
+      glEnableVertexAttribArray(1);
+
+      glBindVertexArray(0);
+    }
+  }
+
+
+
+  // Texture stuff
+  GLuint texture;
+  { int width, height;
+
+    glGenTextures(1, &texture);
+
+    glBindTexture(GL_TEXTURE_2D, texture);
+
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+    unsigned char *image = SOIL_load_image("todd.png", &width, &height, NULL, SOIL_LOAD_RGBA);
+
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, image);
+    glGenerateMipmap(GL_TEXTURE_2D);
+
+    glBindTexture(GL_TEXTURE_2D, 0);
+
+    SOIL_free_image_data(image);
   }
 
 
@@ -189,20 +299,27 @@ int main(void) {
     glClearColor(sin(time * 2), 0.2f, 0.3f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT);
 
-    // Draw first thing
-    { GLfloat greenValue = (sin(time) / 2) + 0.5;
+    /*GLfloat greenValue = (sin(time) / 2) + 0.5;
       GLint vertexColor = glGetUniformLocation(shaders[0], "changeColor");
+      glUniform4f(vertexColor, 0.2f, greenValue, 0.4f, 1.0f);*/
 
-      glBindVertexArray(VAOs[0]);
-      glUseProgram(shaders[0]);
-      glUniform4f(vertexColor, 0.2f, greenValue, 0.4f, 1.0f);
-      glDrawElements(GL_TRIANGLES, 9, GL_UNSIGNED_INT, 0);
-    }
+    // Draw first thing
+    glBindVertexArray(VAOs[0]);
+    glUseProgram(shaders[0]);
+    glDrawElements(GL_TRIANGLES, 9, GL_UNSIGNED_INT, 0);
+    
 
     // Draw second triangle
     glBindVertexArray(VAOs[1]);
     glUseProgram(shaders[1]);
     glDrawArrays(GL_TRIANGLES, 0, 3);
+
+    // Draw texture triangle
+    glBindTexture(GL_TEXTURE_2D, texture);
+
+    glUseProgram(shaders[2]);
+    glBindVertexArray(VAOs[2]);
+    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 
     // Unbind the vertex array
     glBindVertexArray(0);
