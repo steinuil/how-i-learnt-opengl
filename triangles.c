@@ -9,6 +9,7 @@
 
 void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mode);
 GLchar* readFile(char *name);
+GLuint* loadShaders(char **files, int fileCount, int *indexes, int shaderCount);
 
 int main(void) {
   // Create window and bind the current context to it
@@ -54,125 +55,28 @@ int main(void) {
 
 
 
-  // Shaders
-  GLuint shaders[3];
+  // Load shaders
+  GLuint *shaders;
 
-  { GLint success;
-    GLchar infoLog[512];
-    GLuint vertexShader = glCreateShader(GL_VERTEX_SHADER);
-
-    const GLchar *vertexShaderSource = readFile("shaders/vertex.vs");
-    if (!vertexShaderSource) {
-      puts("rip vertex shader file");
-    } else {
-      glShaderSource(vertexShader, 1, (const GLchar **)&vertexShaderSource, NULL);
-      glCompileShader(vertexShader);
-
-      glGetShaderiv(vertexShader, GL_COMPILE_STATUS, &success);
-      if (!success) {
-        glGetShaderInfoLog(vertexShader, 512, NULL, infoLog);
-        printf("rip vertex shader\n%s", infoLog);
-      }
-
-      free((void *)vertexShaderSource);
-    }
-    
-    GLuint fragmentShaders[2];
-    const GLchar* fragShaderSources[2] = {
-      readFile("shaders/orange.fs"),
-      readFile("shaders/green.fs"),
+  { char *files[] = {
+      "shaders/vertex.vs",
+      "shaders/texture-vertex.vs",
+      "shaders/orange.fs",
+      "shaders/green.fs",
+      "shaders/texture-frag.fs",
     };
 
-    for (int i = 0; i < 2; i++) {
-      if (!fragShaderSources[i]) {
-        printf("could not open fragment shader %d\n", i);
-      } else {
-        fragmentShaders[i] = glCreateShader(GL_FRAGMENT_SHADER);
+    int fileCount = sizeof(files) / sizeof(files[0]);
 
-        glShaderSource(fragmentShaders[i], 1, &fragShaderSources[i], NULL);
-        glCompileShader(fragmentShaders[i]);
+    int indexes[] = {
+      0, 2,
+      0, 3,
+      1, 4,
+    };
 
-        glGetShaderiv(fragmentShaders[i], GL_COMPILE_STATUS, &success);
-        if (!success) {
-          glGetShaderInfoLog(fragmentShaders[i], 512, NULL, infoLog);
-          printf("rip fragment shader %d\n%s", i, infoLog);
-        }
+    int shaderCount = sizeof(indexes) / sizeof(int) / 2;
 
-        // Link shaders
-        shaders[i] = glCreateProgram();
-
-        glAttachShader(shaders[i], vertexShader);
-        glAttachShader(shaders[i], fragmentShaders[i]);
-        glLinkProgram(shaders[i]);
-
-        glGetProgramiv(shaders[i], GL_LINK_STATUS, &success);
-        if (!success) {
-          glGetShaderInfoLog(fragmentShaders[i], 512, NULL, infoLog);
-          printf("rip shader program %d\n%s", i, infoLog);
-        }
-
-        free((void *)fragShaderSources[i]);
-        glDeleteShader(fragmentShaders[i]);
-      }
-    }
-
-    glDeleteShader(vertexShader);
-  }
-
-  { GLint success;
-    GLchar infoLog[512];
-
-    GLuint vertexShader = glCreateShader(GL_VERTEX_SHADER);
-    GLuint fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
-
-    const GLchar *vertexShaderSource = readFile("shaders/texture-vertex.vs");
-    if (!vertexShaderSource) {
-      puts("rip vertex shader file");
-    } else {
-      glShaderSource(vertexShader, 1, (const GLchar **)&vertexShaderSource, NULL);
-      glCompileShader(vertexShader);
-
-      glGetShaderiv(vertexShader, GL_COMPILE_STATUS, &success);
-      if (!success) {
-        glGetShaderInfoLog(vertexShader, 512, NULL, infoLog);
-        printf("rip vertex shader\n%s", infoLog);
-      }
-
-      free((void *)vertexShaderSource);
-    }
-
-    const GLchar *fragShaderSource = readFile("shaders/texture-frag.fs");
-    if (!fragShaderSource) {
-      printf("could not open fragment shader %d\n", 2);
-    } else {
-      fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
-
-      glShaderSource(fragmentShader, 1, &fragShaderSource, NULL);
-      glCompileShader(fragmentShader);
-
-      glGetShaderiv(fragmentShader, GL_COMPILE_STATUS, &success);
-      if (!success) {
-        glGetShaderInfoLog(fragmentShader, 512, NULL, infoLog);
-        printf("rip fragment shader %d\n%s", 2, infoLog);
-      }
-
-      // Link shaders
-      shaders[2] = glCreateProgram();
-
-      glAttachShader(shaders[2], vertexShader);
-      glAttachShader(shaders[2], fragmentShader);
-      glLinkProgram(shaders[2]);
-
-      glGetProgramiv(shaders[2], GL_LINK_STATUS, &success);
-      if (!success) {
-        glGetShaderInfoLog(fragmentShader, 512, NULL, infoLog);
-        printf("rip shader program %d\n%s", 2, infoLog);
-      }
-
-      free((void *)fragShaderSource);
-      glDeleteShader(fragmentShader);
-      glDeleteShader(vertexShader);
-    }
+    shaders = loadShaders(files, fileCount, indexes, shaderCount);
   }
 
 
@@ -307,7 +211,6 @@ int main(void) {
     glBindVertexArray(VAOs[0]);
     glUseProgram(shaders[0]);
     glDrawElements(GL_TRIANGLES, 9, GL_UNSIGNED_INT, 0);
-    
 
     // Draw second triangle
     glBindVertexArray(VAOs[1]);
@@ -316,7 +219,6 @@ int main(void) {
 
     // Draw texture triangle
     glBindTexture(GL_TEXTURE_2D, texture);
-
     glUseProgram(shaders[2]);
     glBindVertexArray(VAOs[2]);
     glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
@@ -332,6 +234,8 @@ int main(void) {
   glfwTerminate();
   return 0;
 }
+
+
 
 void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mode) {
   if (key == GLFW_KEY_Q && action == GLFW_PRESS) {
@@ -351,11 +255,12 @@ void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mode
   }
 }
 
+
+
 GLchar* readFile(char *name) {
   long length;
   GLchar *buffer;
 
-  // Open file
   FILE *file = fopen(name, "r");
   if (!file) return NULL;
 
@@ -370,4 +275,65 @@ GLchar* readFile(char *name) {
   fclose(file);
 
   return buffer;
+}
+
+
+
+GLuint* loadShaders(char **files, int fileCount, int *indexes, int shaderCount) {
+  GLuint *shaders = (GLuint *) calloc(sizeof(GLuint), shaderCount);
+  GLchar *shaderFiles[fileCount];
+  GLuint compiledShaders[fileCount];
+
+  // Might read more files than it needs if the files array includes stuff we don't need
+  // but I guess we're gonna have to live with that.
+  for (int i = 0; i < fileCount; i++) {
+    shaderFiles[i] = readFile(files[i]);
+  }
+
+  for (int i = 0; i < shaderCount; i++) {
+    GLint success; GLchar infoLog[512];
+
+    shaders[i] = glCreateProgram();
+
+    // Compile both shaders
+    for (int s = 0; s < 2; s++) {
+      int current = indexes[(i * 2) + s];
+
+      // Compile the shader only if needed
+      if (shaderFiles[current]) {
+        compiledShaders[current] = glCreateShader(s == 0 ? GL_VERTEX_SHADER : GL_FRAGMENT_SHADER);
+
+        glShaderSource(compiledShaders[current], 1, (const GLchar **)&shaderFiles[current], NULL);
+        glCompileShader(compiledShaders[current]);
+
+        glGetShaderiv(compiledShaders[current], GL_COMPILE_STATUS, &success);
+        if (!success) {
+          glGetShaderInfoLog(compiledShaders[current], 512, NULL, infoLog);
+          printf("rip vertex shader\n%s", infoLog);
+        }
+
+        free(shaderFiles[current]);
+        shaderFiles[current] = NULL;
+      }
+
+      glAttachShader(shaders[i], compiledShaders[current]);
+    }
+
+    // Link
+    glLinkProgram(shaders[i]);
+
+    glGetProgramiv(shaders[i], GL_LINK_STATUS, &success);
+    if (!success) {
+      glGetProgramInfoLog(shaders[i], 512, NULL, infoLog);
+      printf("rip shader program %d\n%s", 2, infoLog);
+    }
+  }
+
+  // Clean up
+  for (int i = 0; i < fileCount; i++) {
+    if (shaderFiles[i]) free(shaderFiles[i]);
+    if (compiledShaders[i]) glDeleteShader(compiledShaders[i]);
+  }
+
+  return shaders;
 }

@@ -15,7 +15,7 @@ end
 soil.map(&:to_a).+([ ['triangles.c', 'triangles.o'] ]).each do |c, o|
   CLEAN << o
   file o => c do |t|
-    warnings = %w[ all extra no-unused-parameter ].map { |w| '-W' + w }
+    warnings = %w[ all extra no-unused-parameter no-sign-compare ].map { |w| '-W' + w }
     includes = %w[ /usr/local/include ./include ].map { |i| '-I' + i }
 
     sh 'clang', '-cc1', '-emit-obj', '-o', t.name, '-std=c11', *warnings, *t.prerequisites, *includes
@@ -24,7 +24,7 @@ end
 
 CLOBBER << 'SOIL.a'
 file 'SOIL.a' => soil.map(&:o) do |t|
-  sh 'ar', '-r', t.name, *t.prerequisites
+  sh 'ar', 'cr', t.name, *t.prerequisites
 end
 
 CLOBBER << 'triangles'
