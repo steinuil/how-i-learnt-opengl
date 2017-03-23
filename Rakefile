@@ -7,7 +7,6 @@ task :run => 'triangles' do
   sh './triangles'
 end
 
-# C version
 soil = Dir['lib/SOIL/*.c'].map do |c|
   Struct.new(:c, :o).new(c, c.sub(/\.c$/, '.o'))
 end
@@ -27,6 +26,7 @@ file 'SOIL.a' => soil.map(&:o) do |t|
   sh 'ar', 'cr', t.name, *t.prerequisites
 end
 
+CLEAN << 'triangles.core'
 CLOBBER << 'triangles'
 file 'triangles' => [ 'triangles.o', 'SOIL.a' ] do |t|
   libraries = [

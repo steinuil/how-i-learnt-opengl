@@ -16,5 +16,4 @@ void main() {
     , texture(twoTexture, vec2(textureCoords.x, textureCoords.y - 1.0f))
     , blending
     );
-  //color = texture(twoTexture, textureCoords) - texture(theTexture, vec2(1.0f + textureCoords.x, textureCoords.y));
 }

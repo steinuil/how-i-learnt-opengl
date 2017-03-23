@@ -7,9 +7,18 @@
 
 #include <SOIL.h>
 
+#define arrayLength(x) (sizeof(x) / sizeof(x[0]))
+
+struct textureOpts {
+  char *file;
+  GLint wrapS;
+  GLint wrapT;
+};
+
 void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mode);
 GLchar* readFile(char *name);
 GLuint* loadShaders(char **files, int fileCount, int *indexes, int shaderCount);
+GLuint* load2DTextures(struct textureOpts *options, int textureCount);
 
 GLuint *shaders;
 
@@ -66,17 +75,13 @@ int main(void) {
       "shaders/texture-frag.fs",
     };
 
-    int fileCount = sizeof(files) / sizeof(files[0]);
-
     int indexes[] = {
       0, 2,
       0, 3,
       1, 4,
     };
 
-    int shaderCount = sizeof(indexes) / sizeof(int) / 2;
-
-    shaders = loadShaders(files, fileCount, indexes, shaderCount);
+    shaders = loadShaders(files, arrayLength(files), indexes, arrayLength(indexes) / 2);
   }
 
 
@@ -165,49 +170,15 @@ int main(void) {
 
 
 
-  // Texture stuff
-  GLuint textures[2];
+  // Load textures
+  GLuint *textures;
 
-  glGenTextures(2, textures);
+  { struct textureOpts options[] = {
+      { "textures/todd.png",       GL_CLAMP_TO_EDGE,   GL_CLAMP_TO_EDGE },
+      { "textures/watermelon.png", GL_MIRRORED_REPEAT, GL_MIRRORED_REPEAT, },
+    };
 
-  { int width, height;
-
-    glBindTexture(GL_TEXTURE_2D, textures[0]);
-
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-    unsigned char *image = SOIL_load_image("todd.png", &width, &height, NULL, SOIL_LOAD_RGBA);
-
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, image);
-    glGenerateMipmap(GL_TEXTURE_2D);
-
-    glBindTexture(GL_TEXTURE_2D, 0);
-
-    SOIL_free_image_data(image);
-  }
-
-  { int width, height;
-
-    glBindTexture(GL_TEXTURE_2D, textures[1]);
-
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_MIRRORED_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_MIRRORED_REPEAT);
-
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-    unsigned char *image = SOIL_load_image("watermelon.png", &width, &height, NULL, SOIL_LOAD_RGBA);
-
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, image);
-    glGenerateMipmap(GL_TEXTURE_2D);
-
-    glBindTexture(GL_TEXTURE_2D, 0);
-
-    SOIL_free_image_data(image);
+    textures = load2DTextures(options, arrayLength(options));
   }
 
 
@@ -394,4 +365,32 @@ GLuint* loadShaders(char **files, int fileCount, int *indexes, int shaderCount) 
   }
 
   return shaders;
+}
+
+
+
+GLuint* load2DTextures(struct textureOpts *options, int textureCount) {
+  GLuint *textures = (GLuint *) calloc(sizeof(GLuint), textureCount);
+  glGenTextures(textureCount, textures);
+
+  for (int i = 0; i < textureCount; i++) {
+    glBindTexture(GL_TEXTURE_2D, textures[i]);
+
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, options[i].wrapS);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, options[i].wrapT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+    int width, height;
+    unsigned char *image = SOIL_load_image(options[i].file, &width, &height, NULL, SOIL_LOAD_RGBA);
+
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, image);
+
+    SOIL_free_image_data(image);
+
+    glGenerateMipmap(GL_TEXTURE_2D);
+    glBindTexture(GL_TEXTURE_2D, 0);
+  }
+
+  return textures;
 }
