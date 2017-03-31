@@ -21,7 +21,7 @@ GLchar* readFile(char *name);
 GLuint* loadShaders(char **files, int fileCount, int *indexes, int shaderCount);
 GLuint* load2DTextures(struct textureOpts *options, int textureCount);
 
-GLuint *shaders;
+float fieldOfView;
 
 int main(void) {
   // Create window and bind the current context to it
@@ -53,120 +53,36 @@ int main(void) {
 
 
   // Initiate OpenGL proper
+  int width, height;
+
   { glewExperimental = GL_TRUE;
     if (glewInit() != GLEW_OK) {
       return -1;
     }
 
     // In high DPI screns the framebuffer will be bigger than the window size.
-    int width, height;
     glfwGetFramebufferSize(window, &width, &height);
 
     glViewport(0, 0, width, height);
+
+    glEnable(GL_DEPTH_TEST);
   }
 
 
 
   // Load shaders
+  GLuint *shaders;
+
   { char *files[] = {
-      "shaders/vertex.vs",
       "shaders/texture-vertex.vs",
-      "shaders/orange.fs",
-      "shaders/green.fs",
-      "shaders/texture-frag.fs",
+      "shaders/texture-frag2.fs",
     };
 
     int indexes[] = {
-      0, 2,
-      0, 3,
-      1, 4,
+      0, 1,
     };
 
     shaders = loadShaders(files, arrayLength(files), indexes, arrayLength(indexes) / 2);
-  }
-
-
-
-  // Vertex stuff, I don't know man
-  GLuint VAOs[3];
-
-  { GLuint VBOs[3], EBOs[2];
-    glGenVertexArrays(3, VAOs);
-    glGenBuffers(3, VBOs);
-    glGenBuffers(2, EBOs);
-
-    { GLfloat vertices[] = {
-         0.5f,  0.5f, 0.0f,  // Top Right
-         0.5f, -0.5f, 0.0f,  // Bottom Right
-        -0.5f, -0.5f, 0.0f,  // Bottom Left
-        -0.5f,  0.5f, 0.0f,   // Top Left
-        -0.7f,  0.0f, 0.0f,
-      };
-
-      GLuint indices[] = {
-        0, 1, 3,
-        1, 2, 3,
-        2, 3, 4,
-      };
-
-      glBindVertexArray(VAOs[0]);
-      glBindBuffer(GL_ARRAY_BUFFER, VBOs[0]);
-      glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-
-      glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBOs[0]);
-      glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
-
-      glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), (GLvoid *)NULL);
-      glEnableVertexAttribArray(0);
-      glBindVertexArray(0);
-    }
-
-    { GLfloat vertices[] = {
-        0.5f, 0.5f, 0.0f,   0.0f, 0.5f, 0.2f,
-        0.5f, -0.5f, 0.0f,  0.0f, 0.5f, 0.2f,
-        0.7f, 0.0f, 0.0f,   0.0f, 1.0f, 0.0f,
-      };
-
-      glBindVertexArray(VAOs[1]);
-      glBindBuffer(GL_ARRAY_BUFFER, VBOs[1]);
-      glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-
-      glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(GLfloat), (GLvoid *)0);
-      glEnableVertexAttribArray(0);
-
-      glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(GLfloat), (GLvoid *)(3 * sizeof(GLfloat)));
-      glEnableVertexAttribArray(1);
-
-      glBindVertexArray(0);
-    }
-
-    { GLfloat vertices[] = {
-        0.4f, 0.4f, 0.0f,   1.0f, 0.0f,
-        0.4f, -0.4f, 0.0f,  1.0f, 1.0f,
-        -0.4f, -0.4f, 0.0f, 0.0f, 1.0f,
-        -0.4f, 0.4f, 0.0f,  0.0f, 0.0f,
-      };
-
-      GLuint indices[] = {
-        0, 1, 3,
-        1, 2, 3,
-      };
-
-      glBindVertexArray(VAOs[2]);
-      glBindBuffer(GL_ARRAY_BUFFER, VBOs[2]);
-      glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-
-      glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBOs[1]);
-      glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
-
-      glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(GLfloat), (GLvoid *)0);
-      glEnableVertexAttribArray(0);
-
-      glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(GLfloat), (GLvoid *)(3 * sizeof(GLfloat)));
-      glEnableVertexAttribArray(1);
-
-      glBindVertexArray(0);
-    }
   }
 
 
@@ -176,7 +92,7 @@ int main(void) {
 
   { struct textureOpts options[] = {
       { "textures/todd.png",       GL_CLAMP_TO_EDGE,   GL_CLAMP_TO_EDGE },
-      { "textures/watermelon.png", GL_MIRRORED_REPEAT, GL_MIRRORED_REPEAT, },
+      //{ "textures/watermelon.png", GL_MIRRORED_REPEAT, GL_MIRRORED_REPEAT, },
     };
 
     textures = load2DTextures(options, arrayLength(options));
@@ -184,61 +100,131 @@ int main(void) {
 
 
 
+  GLuint VAO;
+
+  { GLuint VBO;
+    glGenVertexArrays(1, &VAO);
+    glGenBuffers(1, &VBO);
+
+    GLfloat vertices[] = {
+      -0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
+       0.5f, -0.5f, -0.5f,  1.0f, 0.0f,
+       0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
+       0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
+      -0.5f,  0.5f, -0.5f,  0.0f, 1.0f,
+      -0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
+
+      -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
+       0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
+       0.5f,  0.5f,  0.5f,  1.0f, 1.0f,
+       0.5f,  0.5f,  0.5f,  1.0f, 1.0f,
+      -0.5f,  0.5f,  0.5f,  0.0f, 1.0f,
+      -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
+
+      -0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+      -0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
+      -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+      -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+      -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
+      -0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+
+       0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+       0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
+       0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+       0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+       0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
+       0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+
+      -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+       0.5f, -0.5f, -0.5f,  1.0f, 1.0f,
+       0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
+       0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
+      -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
+      -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+
+      -0.5f,  0.5f, -0.5f,  0.0f, 1.0f,
+       0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
+       0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+       0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+      -0.5f,  0.5f,  0.5f,  0.0f, 0.0f,
+      -0.5f,  0.5f, -0.5f,  0.0f, 1.0f
+    };
+
+    glBindVertexArray(VAO);
+    glBindBuffer(GL_ARRAY_BUFFER, VBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(GLfloat), (GLvoid *)0);
+    glEnableVertexAttribArray(0);
+
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(GLfloat), (GLvoid *)(3 * sizeof(GLfloat)));
+    glEnableVertexAttribArray(1);
+
+    glBindVertexArray(0);
+  }
+
+
+
   glfwSetKeyCallback(window, keyCallback);
 
-  glUseProgram(shaders[2]);
-  glUniform1f(glGetUniformLocation(shaders[2], "blending"), 0.2f);
-
   while (!glfwWindowShouldClose(window)) {
-    // Won't receive the key callback thing if this doesn't run
     glfwPollEvents();
 
     GLfloat time = glfwGetTime();
 
     // Set background color
-    glClearColor(sin(time * 2), 0.2f, 0.3f, 1.0f);
-    glClear(GL_COLOR_BUFFER_BIT);
+    glClearColor(0.2f, 0.2f, 0.3f, 1.0f);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    // Draw first thing
-    glBindVertexArray(VAOs[0]);
     glUseProgram(shaders[0]);
-    glDrawElements(GL_TRIANGLES, 9, GL_UNSIGNED_INT, 0);
 
-    // Draw second triangle
-    glBindVertexArray(VAOs[1]);
-    glUseProgram(shaders[1]);
-    glDrawArrays(GL_TRIANGLES, 0, 3);
-
-
-    // Draw texture triangle
-    glUseProgram(shaders[2]);
-
-    mat4_t transform = mat4_mul(
-      mat4_scale(vec3(1.5, 1.0, 0.4)),
-      mat4_rotate_z(deg_to_rad(time * 50.0))
-    );
-
-    glUniformMatrix4fv(
-      glGetUniformLocation(shaders[2], "transform"),
-      1, GL_FALSE, (const GLfloat *)transform.ary
-    );
-
+    // Set texture
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, textures[0]);
-    glUniform1i(glGetUniformLocation(shaders[2], "theTexture"), 0);
+    glUniform1i(glGetUniformLocation(shaders[0], "toddTexture"), 0);
 
-    glActiveTexture(GL_TEXTURE1);
-    glBindTexture(GL_TEXTURE_2D, textures[1]);
-    glUniform1i(glGetUniformLocation(shaders[2], "theTexture"), 1);
+    // Camera position?
+    { double xpos, ypos;
+      glfwGetCursorPos(window, &xpos, &ypos);
 
-    glBindVertexArray(VAOs[2]);
-    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+      mat4_t view = mat4_translate(
+        vec3(-(xpos - width / 2) / 100.0, (ypos - width / 2) / 100.0, -3.0)
+      );
 
-    // Unbind the vertex array
+      glUniformMatrix4fv(
+        glGetUniformLocation(shaders[0], "view"),
+        1, GL_FALSE, (const GLfloat *)view.ary
+      );
+    }
+
+    // Model position
+    { mat4_t model = mat4_mul(
+        mat4_translate(vec3(0.0, 0.0, -1.0)),
+        mat4_rotate_y(deg_to_rad(time * 45.0))
+      );
+
+      glUniformMatrix4fv(
+        glGetUniformLocation(shaders[0], "model"),
+        1, GL_FALSE, (const GLfloat *)model.ary
+      );
+    }
+
+    // Perspective
+    { mat4_t projection = mat4_perspective(
+        deg_to_rad(45.0), (float)width / (float)height, 0.1, 100.0
+      );
+
+      glUniformMatrix4fv(
+        glGetUniformLocation(shaders[0], "projection"),
+        1, GL_FALSE, (const GLfloat *)projection.ary
+      );
+    }
+
+    // Draw the array
+    glBindVertexArray(VAO);
+    glDrawArrays(GL_TRIANGLES, 0, 36);
     glBindVertexArray(0);
 
-    // Not running this makes the window quite slow for some reason.
-    // Also, nothing is rendered.
     glfwSwapBuffers(window);
   }
 
@@ -268,29 +254,6 @@ void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mode
       }
 
       glPolygonMode(GL_FRONT_AND_BACK, mode);
-      break;
-    }
-
-    case GLFW_KEY_UP: {
-      GLint loc = glGetUniformLocation(shaders[2], "blending");
-      GLfloat blending;
-      glGetUniformfv(shaders[2], loc, &blending);
-
-      if (blending < 1.0f) blending += 0.1f;
-
-      glUniform1f(loc, blending);
-      break;
-    }
-
-    case GLFW_KEY_DOWN: {
-      GLint loc = glGetUniformLocation(shaders[2], "blending");
-      GLfloat blending;
-      glGetUniformfv(shaders[2], loc, &blending);
-
-      if (blending > 0.1f) blending -= 0.1f;
-
-      glUniform1f(loc, blending);
-
       break;
     }
   }

@@ -185,3 +185,22 @@ vec3_t vec3_transform(mat4_t m, vec3_t v) {
   mat4_t nv = mat4_mul(m, vec3_to_mat4(v));
   return (vec3_t) { nv.m30, nv.m31, nv.m32 };
 }
+
+mat4_t mat4_ortho(float left, float right, float bottom, float top, float near_val, float far_val) {
+  return mat4(
+    2.0 / (right - left), 0.0, 0.0, -((right + left) / (right - left)),
+    0.0, 2 / (top - bottom), 0.0, -((top + bottom) / (top / bottom)),
+    0.0, 0.0, -2 / (far_val - near_val), -((far_val + near_val / far_val - near_val)),
+    0.0, 0.0, 0.0, 1.0
+  );
+}
+
+mat4_t mat4_perspective(float fov_rad, float aspect_ratio, float near_dist, float far_dist) {
+  float f = 1.0 / tanf(fov_rad / 2.0);
+  return mat4(
+    f / aspect_ratio, 0.0, 0.0, 0.0,
+    0.0, f, 0.0, 0.0,
+    0.0, 0.0, (far_dist + near_dist) / (near_dist - far_dist), (2 * far_dist * near_dist) / (near_dist - far_dist),
+    0.0, 0.0, -1.0, 0.0
+  );
+}
