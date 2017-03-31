@@ -67,21 +67,6 @@ int main(void) {
 
 
 
-  // Testing matrix stuff
-  { vec3_t a = vec3_transform(
-      mat4_translate(vec3(1.0, 1.0, 0.0)),
-      vec3(1.0, 0.0, 0.0)
-    );
-    printf("%f %f %f\n", a.x, a.y, a.z);
-
-    mat4_t trans = mat4_mul(
-      mat4_rotate_z(deg_to_rad(90.0)),
-      mat4_scale(vec3(0.5, 0.5, 0.5))
-    );
-  }
-
-
-
   // Load shaders
   { char *files[] = {
       "shaders/vertex.vs",
@@ -156,9 +141,9 @@ int main(void) {
     }
 
     { GLfloat vertices[] = {
-        0.4f, 0.4f, 0.0f,   2.0f, 0.0f,
-        0.4f, -0.4f, 0.0f,  2.0f, 2.0f,
-        -0.4f, -0.4f, 0.0f, 0.0f, 2.0f,
+        0.4f, 0.4f, 0.0f,   1.0f, 0.0f,
+        0.4f, -0.4f, 0.0f,  1.0f, 1.0f,
+        -0.4f, -0.4f, 0.0f, 0.0f, 1.0f,
         -0.4f, 0.4f, 0.0f,  0.0f, 0.0f,
       };
 
@@ -224,8 +209,19 @@ int main(void) {
     glUseProgram(shaders[1]);
     glDrawArrays(GL_TRIANGLES, 0, 3);
 
+
     // Draw texture triangle
     glUseProgram(shaders[2]);
+
+    mat4_t transform = mat4_mul(
+      mat4_scale(vec3(1.5, 1.0, 0.4)),
+      mat4_rotate_z(deg_to_rad(time * 50.0))
+    );
+
+    glUniformMatrix4fv(
+      glGetUniformLocation(shaders[2], "transform"),
+      1, GL_FALSE, (const GLfloat *)transform.ary
+    );
 
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, textures[0]);

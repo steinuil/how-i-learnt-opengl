@@ -12,8 +12,8 @@ vec4 texture2;
 
 void main() {
   color = mix
-    ( texture(theTexture, vec2(textureCoords.x, textureCoords.y - 1.0f))
-    , texture(twoTexture, vec2(textureCoords.x, textureCoords.y - 1.0f))
+    ( texture(theTexture, textureCoords)
+    , texture(twoTexture, textureCoords)
     , blending
     );
 }

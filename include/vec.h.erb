@@ -74,10 +74,14 @@ vec3_t vec3_mul(vec3_t v, vec3_t k) {
 
 // Matrices
 <% def mat4() 4.times.map { |i| 4.times.map { |j| yield i, j } } end -%>
-typedef struct {
-<% mat4 do |i, j| -%>
-  float m<%= i.to_s + j.to_s %>;
-<% end -%>
+typedef union {
+  struct {
+  <% mat4 do |i, j| -%>
+    float m<%= i.to_s + j.to_s %>;
+  <% end -%>
+  };
+
+  float ary[4][4];
 } mat4_t;
 
 static inline mat4_t mat4(<%= mat4 { |i, j| "float m#{j}#{i}" }.join ', ' %>) {

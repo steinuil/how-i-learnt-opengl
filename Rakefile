@@ -14,7 +14,7 @@ end
 soil.map(&:to_a).+([ [ ['triangles.c', 'include/vec.h'], 'triangles.o'] ]).each do |c, o|
   CLEAN << o
   file o => c do |t|
-    warnings = %w[ all extra no-unused-parameter no-sign-compare ].map { |w| '-W' + w }
+    warnings = %w[ all extra no-unused-parameter no-sign-compare no-missing-braces ].map { |w| '-W' + w }
     includes = %w[ /usr/local/include ./include ].map { |i| '-I' + i }
 
     sh 'clang', '-cc1', '-emit-obj', '-o', t.name, '-std=c11', *warnings, t.prerequisites[0], *includes
