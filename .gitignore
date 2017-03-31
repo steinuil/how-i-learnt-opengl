@@ -2,3 +2,4 @@ triangles
 *.o
 *.a
 *.core
+include/vec.h

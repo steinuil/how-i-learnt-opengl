@@ -6,6 +6,7 @@
 #include <GLFW/glfw3.h>
 
 #include <SOIL.h>
+#include <vec.h>
 
 #define arrayLength(x) (sizeof(x) / sizeof(x[0]))
 
@@ -62,6 +63,21 @@ int main(void) {
     glfwGetFramebufferSize(window, &width, &height);
 
     glViewport(0, 0, width, height);
+  }
+
+
+
+  // Testing matrix stuff
+  { vec3_t a = vec3_transform(
+      mat4_translate(vec3(1.0, 1.0, 0.0)),
+      vec3(1.0, 0.0, 0.0)
+    );
+    printf("%f %f %f\n", a.x, a.y, a.z);
+
+    mat4_t trans = mat4_mul(
+      mat4_rotate_z(deg_to_rad(90.0)),
+      mat4_scale(vec3(0.5, 0.5, 0.5))
+    );
   }
 
 
