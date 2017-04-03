@@ -37,6 +37,12 @@ float vec3_length(vec3_t v) {
   ));
 }
 
+vec3_t vec3_normalize(vec3_t v) {
+  float len = vec3_length(v);
+  if (len > 0) return vec3_div1(v, len);
+  else return (vec3_t) { 0, 0, 0 };
+}
+
 
 // Vector on vector action
 vec3_t vec3_add(vec3_t v, vec3_t k) {
@@ -202,5 +208,28 @@ mat4_t mat4_perspective(float fov_rad, float aspect_ratio, float near_dist, floa
     0.0, f, 0.0, 0.0,
     0.0, 0.0, (far_dist + near_dist) / (near_dist - far_dist), (2 * far_dist * near_dist) / (near_dist - far_dist),
     0.0, 0.0, -1.0, 0.0
+  );
+}
+
+mat4_t mat4_look_at(vec3_t from, vec3_t to, vec3_t up) {
+  vec3_t z = vec3_mul1(vec3_normalize(vec3_sub(to, from)), -1);
+  vec3_t x = vec3_normalize(vec3_mul(up, z));
+  vec3_t y = vec3_mul(z, x);
+
+  return mat4(
+    x.x, x.y, x.z, -vec3_dot_product(from, x),
+    y.x, y.y, y.z, -vec3_dot_product(from, y),
+    z.x, z.y, z.z, -vec3_dot_product(from, z),
+    0,   0,   0,    1
+  );
+}
+
+void mat4_print(mat4_t v) {
+  printf(
+  <% 4.times do -%>
+  "| <%= 4.times.map { "%5.2f" }.join ' ' %> |\n"
+  <% end -%>
+  "|-------------------------|\n",
+    <%= mat4 { |i, j| "v.m#{j}#{i}" }.join ', ' %>
   );
 }

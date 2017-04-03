@@ -21,7 +21,7 @@ GLchar* readFile(char *name);
 GLuint* loadShaders(char **files, int fileCount, int *indexes, int shaderCount);
 GLuint* load2DTextures(struct textureOpts *options, int textureCount);
 
-float fieldOfView;
+vec3_t position = { 0.0, 0.0, -3.0 };
 
 int main(void) {
   // Create window and bind the current context to it
@@ -165,6 +165,8 @@ int main(void) {
 
 
 
+
+
   glfwSetKeyCallback(window, keyCallback);
 
   while (!glfwWindowShouldClose(window)) {
@@ -183,13 +185,42 @@ int main(void) {
     glBindTexture(GL_TEXTURE_2D, textures[0]);
     glUniform1i(glGetUniformLocation(shaders[0], "toddTexture"), 0);
 
-    // Camera position?
-    { double xpos, ypos;
+    /*{ vec3_t cameraPos = vec3(0.0, 0.0, 3.0);
+      vec3_t cameraTarget = vec3(0.0, 0.0, 0.0);
+
+      vec3_t cameraDirection = vec3_normalize(
+        vec3_sub(cameraPos, cameraTarget)
+      );
+
+      vec3_t cameraRight = vec3_normalize(
+        vec3_mul(
+          vec3(0.0, 1.0, 0.0),
+          cameraDirection
+        )
+      );
+
+      mat4_t view = mat4_look_at(
+        vec3(0.0, 0.0, 3.0),
+        vec3(0.0, 1.0, 0.0),
+        vec3(0.0, 0.0, 1.0)
+      );
+
+      glUniformMatrix4fv(
+        glGetUniformLocation(shaders[0], "view"),
+        1, GL_FALSE, (const GLfloat *)view.ary
+      );
+    }*/
+
+    /*{ double xpos, ypos;
       glfwGetCursorPos(window, &xpos, &ypos);
 
       mat4_t view = mat4_translate(
-        vec3(-(xpos - width / 2) / 100.0, (ypos - width / 2) / 100.0, -3.0)
+        vec3(-(xpos - width / 2) / 100.0, (ypos - width / 2) / 100.0, thing)
       );
+      */
+
+    // Camera position
+    { mat4_t view = mat4_translate(position);
 
       glUniformMatrix4fv(
         glGetUniformLocation(shaders[0], "view"),
@@ -199,7 +230,7 @@ int main(void) {
 
     // Model position
     { mat4_t model = mat4_mul(
-        mat4_translate(vec3(0.0, 0.0, -1.0)),
+        mat4_translate(vec3(0.0, -.5, -1.0)),
         mat4_rotate_y(deg_to_rad(time * 45.0))
       );
 
@@ -242,7 +273,7 @@ void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mode
       break;
     }
 
-    case GLFW_KEY_SPACE: {
+    case GLFW_KEY_BACKSPACE: {
       GLint mode;
 
       glGetIntegerv(GL_POLYGON_MODE, &mode);
@@ -254,6 +285,36 @@ void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mode
       }
 
       glPolygonMode(GL_FRONT_AND_BACK, mode);
+      break;
+    }
+
+    case GLFW_KEY_A: {
+      position.x += 0.1;
+      break;
+    }
+
+    case GLFW_KEY_D: {
+      position.x -= 0.1;
+      break;
+    }
+
+    case GLFW_KEY_W: {
+      position.z += 0.1;
+      break;
+    }
+
+    case GLFW_KEY_S: {
+      position.z -= 0.1;
+      break;
+    }
+
+    case GLFW_KEY_LEFT_CONTROL: {
+      position.y += 0.1;
+      break;
+    }
+
+    case GLFW_KEY_SPACE: {
+      position.y -= 0.1;
       break;
     }
   }
