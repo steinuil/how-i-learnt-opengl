@@ -29,13 +29,9 @@ int main(void) {
 
   { glfwInit();
 
-    // Set GL version 3.3.
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
-
-    // The core profile complains if you use deprecated features.
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-
     glfwWindowHint(GLFW_RESIZABLE, GL_FALSE);
 
     // Can make the window fullscreen by passing a monitor as the 4th argument
@@ -169,10 +165,31 @@ int main(void) {
 
   glfwSetKeyCallback(window, keyCallback);
 
+  float mouseOffset_x = 0.0,
+        mouseOffset_y = 0.0;
+
+  double lastx, lasty;
+  glfwGetCursorPos(window, &lastx, &lasty);
+
+  float pitch = 0.0,
+        yaw = 0.0;
+
   while (!glfwWindowShouldClose(window)) {
     glfwPollEvents();
 
-    GLfloat time = glfwGetTime();
+    float time = glfwGetTime();
+
+    { double xpos, ypos;
+      glfwGetCursorPos(window, &xpos, &ypos);
+
+      mouseOffset_x = lastx - xpos;
+      mouseOffset_y = lasty - ypos;
+
+      lastx = xpos;
+      lasty = ypos;
+
+      printf("%f %f\n", mouseOffset_x, mouseOffset_y);
+    }
 
     // Set background color
     glClearColor(0.2f, 0.2f, 0.3f, 1.0f);
@@ -185,42 +202,19 @@ int main(void) {
     glBindTexture(GL_TEXTURE_2D, textures[0]);
     glUniform1i(glGetUniformLocation(shaders[0], "toddTexture"), 0);
 
-    /*{ vec3_t cameraPos = vec3(0.0, 0.0, 3.0);
-      vec3_t cameraTarget = vec3(0.0, 0.0, 0.0);
+    // Camera position
+    { yaw   -= mouseOffset_x;
+      pitch -= mouseOffset_y;
 
-      vec3_t cameraDirection = vec3_normalize(
-        vec3_sub(cameraPos, cameraTarget)
-      );
+      float sensitivity = 2.0;
 
-      vec3_t cameraRight = vec3_normalize(
-        vec3_mul(
-          vec3(0.0, 1.0, 0.0),
-          cameraDirection
+      mat4_t view = mat4_mul(
+        mat4_rotate_x(deg_to_rad(pitch / sensitivity)),
+        mat4_mul(
+          mat4_rotate_y(deg_to_rad(yaw / sensitivity)),
+          mat4_translate(position)
         )
       );
-
-      mat4_t view = mat4_look_at(
-        vec3(0.0, 0.0, 3.0),
-        vec3(0.0, 1.0, 0.0),
-        vec3(0.0, 0.0, 1.0)
-      );
-
-      glUniformMatrix4fv(
-        glGetUniformLocation(shaders[0], "view"),
-        1, GL_FALSE, (const GLfloat *)view.ary
-      );
-    }*/
-
-    /*{ double xpos, ypos;
-      glfwGetCursorPos(window, &xpos, &ypos);
-
-      mat4_t view = mat4_translate(
-        vec3(-(xpos - width / 2) / 100.0, (ypos - width / 2) / 100.0, thing)
-      );
-      */
-
-    // Camera position
-    { mat4_t view = mat4_translate(position);
 
       glUniformMatrix4fv(
         glGetUniformLocation(shaders[0], "view"),
@@ -266,7 +260,7 @@ int main(void) {
 
 
 void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mode) {
-  if (action != GLFW_PRESS) return;
+  //if (action != GLFW_PRESS) return;
   switch (key) {
     case GLFW_KEY_Q: {
       glfwSetWindowShouldClose(window, GL_TRUE);
