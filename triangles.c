@@ -23,6 +23,10 @@ GLuint* load2DTextures(struct textureOpts *options, int textureCount);
 
 vec3_t position = { 0.0, 0.0, -3.0 };
 
+
+struct { float offsetX, offsetY; double lastX, lastY } camera = { 0.0 };
+
+
 int main(void) {
   // Create window and bind the current context to it
   GLFWwindow* window;
@@ -158,8 +162,6 @@ int main(void) {
 
     glBindVertexArray(0);
   }
-
-
 
 
 
