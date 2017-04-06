@@ -57,3 +57,5 @@ file 'include/vec.h' => 'include/vec.h.erb' do |t|
   puts 'erb include/vec.h.erb -o include/vec.h'
   File.write t.name, ERB.new(File.read(t.prerequisites[0]), nil, '-').result
 end
+
+#clang -shared -o libtest.so -fPIC test.c

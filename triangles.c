@@ -23,8 +23,12 @@ GLuint* load2DTextures(struct textureOpts *options, int textureCount);
 
 vec3_t position = { 0.0, 0.0, -3.0 };
 
+float pitch = 0.0,
+      yaw = 0.0;
 
-struct { float offsetX, offsetY; double lastX, lastY } camera = { 0.0 };
+const float sensitivity = 2.0;
+
+//struct { float offsetX, offsetY; double lastX, lastY } camera = { 0.0 };
 
 
 int main(void) {
@@ -173,9 +177,6 @@ int main(void) {
   double lastx, lasty;
   glfwGetCursorPos(window, &lastx, &lasty);
 
-  float pitch = 0.0,
-        yaw = 0.0;
-
   while (!glfwWindowShouldClose(window)) {
     glfwPollEvents();
 
@@ -190,7 +191,7 @@ int main(void) {
       lastx = xpos;
       lasty = ypos;
 
-      printf("%f %f\n", mouseOffset_x, mouseOffset_y);
+      //printf("%f %f\n", mouseOffset_x, mouseOffset_y);
     }
 
     // Set background color
@@ -208,8 +209,6 @@ int main(void) {
     { yaw   -= mouseOffset_x;
       pitch -= mouseOffset_y;
 
-      float sensitivity = 2.0;
-
       mat4_t view = mat4_mul(
         mat4_rotate_x(deg_to_rad(pitch / sensitivity)),
         mat4_mul(
@@ -217,6 +216,8 @@ int main(void) {
           mat4_translate(position)
         )
       );
+
+      printf("%f\n", yaw);
 
       glUniformMatrix4fv(
         glGetUniformLocation(shaders[0], "view"),
@@ -260,7 +261,6 @@ int main(void) {
 }
 
 
-
 void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mode) {
   //if (action != GLFW_PRESS) return;
   switch (key) {
@@ -285,7 +285,8 @@ void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mode
     }
 
     case GLFW_KEY_A: {
-      position.x += 0.1;
+      position.z += (0.1 * cos(yaw / sensitivity));
+      position.x += (0.1 * sin(yaw / sensitivity));
       break;
     }
 
@@ -295,7 +296,8 @@ void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mode
     }
 
     case GLFW_KEY_W: {
-      position.z += 0.1;
+      position.z += (0.1 * cos(yaw / sensitivity));
+      position.x += (0.1 * sin(yaw / sensitivity));
       break;
     }
 
