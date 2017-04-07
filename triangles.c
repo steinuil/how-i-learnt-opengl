@@ -21,12 +21,13 @@ GLchar* readFile(char *name);
 GLuint* loadShaders(char **files, int fileCount, int *indexes, int shaderCount);
 GLuint* load2DTextures(struct textureOpts *options, int textureCount);
 
+struct camera {
+  float pitch, yaw;
+};
+
 vec3_t position = { 0.0, 0.0, -3.0 };
 
-float pitch = 0.0,
-      yaw = 0.0;
-
-//struct { float offsetX, offsetY; double lastX, lastY } camera = { 0.0 };
+struct camera camera = { 0.0, 0.0 };
 
 
 int main(void) {
@@ -188,8 +189,6 @@ int main(void) {
 
       lastx = xpos;
       lasty = ypos;
-
-      //printf("%f %f\n", mouseOffset_x, mouseOffset_y);
     }
 
     // Set background color
@@ -205,18 +204,16 @@ int main(void) {
 
     // Camera position
     { const float sensitivity = 2.0;
-      yaw   -= (mouseOffset_x / sensitivity);
-      pitch -= (mouseOffset_y / sensitivity);
+      camera.yaw   -= (mouseOffset_x / sensitivity);
+      camera.pitch -= (mouseOffset_y / sensitivity);
 
       mat4_t view = mat4_mul(
-        mat4_rotate_x(deg_to_rad(pitch)),
+        mat4_rotate_x(deg_to_rad(camera.pitch)),
         mat4_mul(
-          mat4_rotate_y(deg_to_rad(yaw)),
+          mat4_rotate_y(deg_to_rad(camera.yaw)),
           mat4_translate(position)
         )
       );
-
-      //printf("%f\n", yaw);
 
       glUniformMatrix4fv(
         glGetUniformLocation(shaders[0], "view"),
@@ -284,26 +281,26 @@ void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mode
     }
 
     case GLFW_KEY_A: {
-      position.x += 0.1 * cos(deg_to_rad(yaw));
-      position.z += 0.1 * sin(deg_to_rad(yaw));
+      position.x += 0.1 * cos(deg_to_rad(camera.yaw));
+      position.z += 0.1 * sin(deg_to_rad(camera.yaw));
       break;
     }
 
     case GLFW_KEY_D: {
-      position.x -= 0.1 * cos(deg_to_rad(yaw));
-      position.z -= 0.1 * sin(deg_to_rad(yaw));
+      position.x -= 0.1 * cos(deg_to_rad(camera.yaw));
+      position.z -= 0.1 * sin(deg_to_rad(camera.yaw));
       break;
     }
 
     case GLFW_KEY_W: {
-      position.z += 0.1 * cos(deg_to_rad(yaw));
-      position.x -= 0.1 * sin(deg_to_rad(yaw));
+      position.z += 0.1 * cos(deg_to_rad(camera.yaw));
+      position.x -= 0.1 * sin(deg_to_rad(camera.yaw));
       break;
     }
 
     case GLFW_KEY_S: {
-      position.z -= 0.1 * cos(deg_to_rad(yaw));
-      position.x += 0.1 * sin(deg_to_rad(yaw));
+      position.z -= 0.1 * cos(deg_to_rad(camera.yaw));
+      position.x += 0.1 * sin(deg_to_rad(camera.yaw));
       break;
     }
 
