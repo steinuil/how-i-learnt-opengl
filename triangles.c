@@ -26,8 +26,6 @@ vec3_t position = { 0.0, 0.0, -3.0 };
 float pitch = 0.0,
       yaw = 0.0;
 
-const float sensitivity = 2.0;
-
 //struct { float offsetX, offsetY; double lastX, lastY } camera = { 0.0 };
 
 
@@ -206,18 +204,19 @@ int main(void) {
     glUniform1i(glGetUniformLocation(shaders[0], "toddTexture"), 0);
 
     // Camera position
-    { yaw   -= mouseOffset_x;
-      pitch -= mouseOffset_y;
+    { const float sensitivity = 2.0;
+      yaw   -= (mouseOffset_x / sensitivity);
+      pitch -= (mouseOffset_y / sensitivity);
 
       mat4_t view = mat4_mul(
-        mat4_rotate_x(deg_to_rad(pitch / sensitivity)),
+        mat4_rotate_x(deg_to_rad(pitch)),
         mat4_mul(
-          mat4_rotate_y(deg_to_rad(yaw / sensitivity)),
+          mat4_rotate_y(deg_to_rad(yaw)),
           mat4_translate(position)
         )
       );
 
-      printf("%f\n", yaw);
+      //printf("%f\n", yaw);
 
       glUniformMatrix4fv(
         glGetUniformLocation(shaders[0], "view"),
@@ -285,24 +284,26 @@ void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mode
     }
 
     case GLFW_KEY_A: {
-      position.z += (0.1 * cos(yaw / sensitivity));
-      position.x += (0.1 * sin(yaw / sensitivity));
+      position.x += 0.1 * cos(deg_to_rad(yaw));
+      position.z += 0.1 * sin(deg_to_rad(yaw));
       break;
     }
 
     case GLFW_KEY_D: {
-      position.x -= 0.1;
+      position.x -= 0.1 * cos(deg_to_rad(yaw));
+      position.z -= 0.1 * sin(deg_to_rad(yaw));
       break;
     }
 
     case GLFW_KEY_W: {
-      position.z += (0.1 * cos(yaw / sensitivity));
-      position.x += (0.1 * sin(yaw / sensitivity));
+      position.z += 0.1 * cos(deg_to_rad(yaw));
+      position.x -= 0.1 * sin(deg_to_rad(yaw));
       break;
     }
 
     case GLFW_KEY_S: {
-      position.z -= 0.1;
+      position.z -= 0.1 * cos(deg_to_rad(yaw));
+      position.x += 0.1 * sin(deg_to_rad(yaw));
       break;
     }
 
