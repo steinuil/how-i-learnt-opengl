@@ -21,14 +21,14 @@ GLchar* readFile(char *name);
 GLuint* loadShaders(char **files, int fileCount, int *indexes, int shaderCount);
 GLuint* load2DTextures(struct textureOpts *options, int textureCount);
 
-struct camera {
-  float pitch, yaw;
-};
-
 vec3_t position = { 0.0, 0.0, -3.0 };
 
+struct camera { float pitch, yaw; };
 struct camera camera = { 0.0, 0.0 };
 
+// Eight directions.
+enum direction { DIR_NONE, DIR_N, DIR_NE, DIR_E, DIR_SE, DIR_S, DIR_SW, DIR_W, DIR_NW };
+enum direction direction = DIR_NONE;
 
 int main(void) {
   // Create window and bind the current context to it
@@ -174,6 +174,7 @@ int main(void) {
         mouseOffset_y = 0.0;
 
   double lastx, lasty;
+
   glfwGetCursorPos(window, &lastx, &lasty);
 
   while (!glfwWindowShouldClose(window)) {
@@ -203,6 +204,29 @@ int main(void) {
     glUniform1i(glGetUniformLocation(shaders[0], "toddTexture"), 0);
 
     // Camera position
+    if (direction != DIR_NONE) {
+      float yaw = camera.yaw;
+      const float speed = 0.05;
+
+      switch(direction) {
+      case DIR_NE: yaw +=  45.0; break;
+      case DIR_E:  yaw +=  90.0; break;
+      case DIR_SE: yaw += 135.0; break;
+      case DIR_S:  yaw += 180.0; break;
+      case DIR_SW: yaw -= 135.0; break;
+      case DIR_W:  yaw -=  90.0; break;
+      case DIR_NW: yaw -=  45.0; break;
+      default: break;
+      }
+
+      yaw = deg_to_rad(yaw);
+
+      position.z += speed * cos(yaw);
+      position.x += speed * -sin(yaw);
+    }
+
+
+    // Camera direction
     { const float sensitivity = 2.0;
       camera.yaw   -= (mouseOffset_x / sensitivity);
       camera.pitch -= (mouseOffset_y / sensitivity);
@@ -258,7 +282,45 @@ int main(void) {
 
 
 void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mode) {
-  //if (action != GLFW_PRESS) return;
+  if (action == GLFW_PRESS) {
+    if (direction == DIR_NONE) {
+      switch (key) {
+      case GLFW_KEY_W: direction = DIR_N; break;
+      case GLFW_KEY_D: direction = DIR_E; break;
+      case GLFW_KEY_S: direction = DIR_S; break;
+      case GLFW_KEY_A: direction = DIR_W; break;
+      }
+    }
+    else if ((key == GLFW_KEY_W && direction == DIR_E)
+          || (key == GLFW_KEY_D && direction == DIR_N)) direction = DIR_NE;
+
+    else if ((key == GLFW_KEY_W && direction == DIR_W)
+          || (key == GLFW_KEY_A && direction == DIR_N)) direction = DIR_NW;
+
+    else if ((key == GLFW_KEY_S && direction == DIR_E)
+          || (key == GLFW_KEY_D && direction == DIR_S)) direction = DIR_SE;
+
+    else if ((key == GLFW_KEY_S && direction == DIR_W)
+          || (key == GLFW_KEY_A && direction == DIR_S)) direction = DIR_SW;
+  } else if (action == GLFW_RELEASE) {
+    if ((key == GLFW_KEY_W && direction == DIR_N)
+     || (key == GLFW_KEY_D && direction == DIR_E)
+     || (key == GLFW_KEY_S && direction == DIR_S)
+     || (key == GLFW_KEY_A && direction == DIR_W)) direction = DIR_NONE;
+
+    else if ((key == GLFW_KEY_W && direction == DIR_NE)
+          || (key == GLFW_KEY_S && direction == DIR_SE)) direction = DIR_E;
+
+    else if ((key == GLFW_KEY_W && direction == DIR_NW)
+          || (key == GLFW_KEY_S && direction == DIR_SW)) direction = DIR_W;
+
+    else if ((key == GLFW_KEY_D && direction == DIR_NE)
+          || (key == GLFW_KEY_A && direction == DIR_NW)) direction = DIR_N;
+
+    else if ((key == GLFW_KEY_D && direction == DIR_SE)
+          || (key == GLFW_KEY_A && direction == DIR_SW)) direction = DIR_S;
+  }
+
   switch (key) {
     case GLFW_KEY_Q: {
       glfwSetWindowShouldClose(window, GL_TRUE);
@@ -279,31 +341,9 @@ void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mode
       glPolygonMode(GL_FRONT_AND_BACK, mode);
       break;
     }
+  }
 
-    case GLFW_KEY_A: {
-      position.x += 0.1 * cos(deg_to_rad(camera.yaw));
-      position.z += 0.1 * sin(deg_to_rad(camera.yaw));
-      break;
-    }
-
-    case GLFW_KEY_D: {
-      position.x -= 0.1 * cos(deg_to_rad(camera.yaw));
-      position.z -= 0.1 * sin(deg_to_rad(camera.yaw));
-      break;
-    }
-
-    case GLFW_KEY_W: {
-      position.z += 0.1 * cos(deg_to_rad(camera.yaw));
-      position.x -= 0.1 * sin(deg_to_rad(camera.yaw));
-      break;
-    }
-
-    case GLFW_KEY_S: {
-      position.z -= 0.1 * cos(deg_to_rad(camera.yaw));
-      position.x += 0.1 * sin(deg_to_rad(camera.yaw));
-      break;
-    }
-
+  /*
     case GLFW_KEY_LEFT_CONTROL: {
       position.y += 0.1;
       break;
@@ -314,6 +354,7 @@ void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mode
       break;
     }
   }
+  */
 }
 
 
