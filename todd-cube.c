@@ -27,10 +27,6 @@ vec3_t position = { 0.0, 0.0, -3.0 };
 struct camera { float pitch, yaw; };
 struct camera camera = { 0.0, 0.0 };
 
-// Eight directions.
-enum direction { DIR_NONE, DIR_N, DIR_NE, DIR_E, DIR_SE, DIR_S, DIR_SW, DIR_W, DIR_NW };
-enum direction direction = DIR_NONE;
-
 enum mov_keys {
   KEY_UP    = 1,
   KEY_RIGHT = 2,
@@ -104,8 +100,8 @@ int main(void) {
   GLuint *textures;
 
   { struct textureOpts options[] = {
-      { "textures/a.png",       GL_CLAMP_TO_EDGE,   GL_CLAMP_TO_EDGE },
-      { "textures/b.png", GL_MIRRORED_REPEAT, GL_MIRRORED_REPEAT, },
+      { "textures/todd.png",       GL_CLAMP_TO_EDGE,   GL_CLAMP_TO_EDGE },
+      { "textures/watermelon.png", GL_MIRRORED_REPEAT, GL_MIRRORED_REPEAT, },
     };
 
     textures = load2DTextures(options, arrayLength(options));
@@ -215,20 +211,41 @@ int main(void) {
     glUniform1i(glGetUniformLocation(shaders[0], "toddTexture"), 0);
 
     // Camera position
-    if (direction != DIR_NONE) {
-      float yaw = camera.yaw;
-      const float speed = 0.15;
+    { float yaw = camera.yaw;
 
-      switch(direction) {
-      case DIR_NE: yaw +=  45.0; break;
-      case DIR_E:  yaw +=  90.0; break;
-      case DIR_SE: yaw += 135.0; break;
-      case DIR_S:  yaw += 180.0; break;
-      case DIR_SW: yaw -= 135.0; break;
-      case DIR_W:  yaw -=  90.0; break;
-      case DIR_NW: yaw -=  45.0; break;
-      default: break;
+      switch (mov_keys) {
+        case KEY_UP:
+        case KEY_UP + KEY_LEFT + KEY_RIGHT:
+          break;
+
+        case KEY_DOWN:
+        case KEY_DOWN + KEY_LEFT + KEY_RIGHT:
+          yaw += 180.0; break;
+
+        case KEY_RIGHT:
+        case KEY_RIGHT + KEY_UP + KEY_DOWN:
+          yaw += 90.0; break;
+
+        case KEY_LEFT:
+        case KEY_LEFT + KEY_UP + KEY_DOWN:
+          yaw -= 90.0; break;
+
+        case KEY_UP + KEY_RIGHT:
+          yaw += 45.0; break;
+
+        case KEY_UP + KEY_LEFT:
+          yaw -= 45.0; break;
+
+        case KEY_DOWN + KEY_RIGHT:
+          yaw += 135.0; break;
+
+        case KEY_DOWN + KEY_LEFT:
+          yaw -= 135.0; break;
+
+        default: goto no_movement;
       }
+
+      const float speed = 0.15;
 
       yaw = deg_to_rad(yaw);
 
@@ -236,28 +253,13 @@ int main(void) {
       position.x += speed * -sin(yaw);
     }
 
-    { printf("\e[0J\e[0;0H  %d\n%d %d %d\n", mov_keys & KEY_UP, mov_keys & KEY_LEFT, mov_keys & KEY_DOWN, mov_keys & KEY_RIGHT);
-
-      /*if ((mov_keys != KEY_UP + KEY_DOWN + KEY_LEFT + KEY_RIGHT) && (mov_keys != 0)) {
-        if   (mov_keys == KEY_UP) 
-      }*/
-
-      /*
-      if ((mov_keys & KEY_UP) && (mov_keys & KEY_DOWN) && (mov_keys & KEY_LEFT) && (mov_keys & KEY_RIGHT)) {
-      } else if ((mov_keys & KEY_UP) && (mov_keys & KEY_DOWN)) {
-        if      (mov_keys & KEY_LEFT)  yaw -= 90.0;
-        else if (mov_keys & KEY_RIGHT) yaw += 90.0;
-      } else if ((mov_keys & KEY_LEFT) && (mov_keys & KEY_RIGHT)) {
-        if      (mov_keys & KEY_UP)   yaw 
-      }
-      */
-    }
+no_movement:
 
     // Camera direction
     { const float sensitivity = 2.0;
 
       camera.yaw = fmod(camera.yaw - (mouseOffset_x / sensitivity), 360.0);
-      camera.pitch -= (mouseOffset_y / sensitivity);
+      camera.pitch = fmod(camera.pitch - (mouseOffset_y / sensitivity), 360.0);
 
       mat4_t view = mat4_mul(
         mat4_rotate_x(deg_to_rad(camera.pitch)),
@@ -335,60 +337,11 @@ void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mode
     case GLFW_KEY_D: mov_keys |= KEY_RIGHT; break;
     case GLFW_KEY_S: mov_keys |= KEY_DOWN;  break;
     case GLFW_KEY_A: mov_keys |= KEY_LEFT;  break;
-    }
-  } else if (action == GLFW_RELEASE) {
-    switch (key) {
-    case GLFW_KEY_W: mov_keys &= ~KEY_UP;    break;
-    case GLFW_KEY_D: mov_keys &= ~KEY_RIGHT; break;
-    case GLFW_KEY_S: mov_keys &= ~KEY_DOWN;  break;
-    case GLFW_KEY_A: mov_keys &= ~KEY_LEFT;  break;
-    }
-  }
 
-  if (action == GLFW_PRESS) {
-    if (direction == DIR_NONE) {
-      switch (key) {
-      case GLFW_KEY_W: direction = DIR_N; break;
-      case GLFW_KEY_D: direction = DIR_E; break;
-      case GLFW_KEY_S: direction = DIR_S; break;
-      case GLFW_KEY_A: direction = DIR_W; break;
-      }
-    }
-    else if ((key == GLFW_KEY_W && direction == DIR_E)
-          || (key == GLFW_KEY_D && direction == DIR_N)) direction = DIR_NE;
 
-    else if ((key == GLFW_KEY_W && direction == DIR_W)
-          || (key == GLFW_KEY_A && direction == DIR_N)) direction = DIR_NW;
-
-    else if ((key == GLFW_KEY_S && direction == DIR_E)
-          || (key == GLFW_KEY_D && direction == DIR_S)) direction = DIR_SE;
-
-    else if ((key == GLFW_KEY_S && direction == DIR_W)
-          || (key == GLFW_KEY_A && direction == DIR_S)) direction = DIR_SW;
-  } else if (action == GLFW_RELEASE) {
-    if ((key == GLFW_KEY_W && direction == DIR_N)
-     || (key == GLFW_KEY_D && direction == DIR_E)
-     || (key == GLFW_KEY_S && direction == DIR_S)
-     || (key == GLFW_KEY_A && direction == DIR_W)) direction = DIR_NONE;
-
-    else if ((key == GLFW_KEY_W && direction == DIR_NE)
-          || (key == GLFW_KEY_S && direction == DIR_SE)) direction = DIR_E;
-
-    else if ((key == GLFW_KEY_W && direction == DIR_NW)
-          || (key == GLFW_KEY_S && direction == DIR_SW)) direction = DIR_W;
-
-    else if ((key == GLFW_KEY_D && direction == DIR_NE)
-          || (key == GLFW_KEY_A && direction == DIR_NW)) direction = DIR_N;
-
-    else if ((key == GLFW_KEY_D && direction == DIR_SE)
-          || (key == GLFW_KEY_A && direction == DIR_SW)) direction = DIR_S;
-  }
-
-  switch (key) {
-    case GLFW_KEY_Q: {
+    case GLFW_KEY_Q:
       glfwSetWindowShouldClose(window, GL_TRUE);
       break;
-    }
 
     case GLFW_KEY_BACKSPACE: {
       GLint mode;
@@ -403,6 +356,14 @@ void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mode
 
       glPolygonMode(GL_FRONT_AND_BACK, mode);
       break;
+    }
+    }
+  } else if (action == GLFW_RELEASE) {
+    switch (key) {
+    case GLFW_KEY_W: mov_keys &= ~KEY_UP;    break;
+    case GLFW_KEY_D: mov_keys &= ~KEY_RIGHT; break;
+    case GLFW_KEY_S: mov_keys &= ~KEY_DOWN;  break;
+    case GLFW_KEY_A: mov_keys &= ~KEY_LEFT;  break;
     }
   }
 
