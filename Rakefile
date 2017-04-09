@@ -1,17 +1,17 @@
 require 'rake/clean'
 
-task :default => 'triangles'
+task :default => 'todd-cube'
 
 desc 'Compile the file and run it'
-task :run => 'triangles' do
-  sh './triangles'
+task :run => 'todd-cube' do
+  sh './todd-cube'
 end
 
 soil = Dir['lib/SOIL/*.c'].map do |c|
   Struct.new(:c, :o).new(c, c.sub(/\.c$/, '.o'))
 end
 
-soil.map(&:to_a).+([ [ ['triangles.c', 'include/vec.h'], 'triangles.o'] ]).each do |c, o|
+soil.map(&:to_a).+([ [ ['todd-cube.c', 'include/vec.h'], 'todd-cube.o'] ]).each do |c, o|
   CLEAN << o
   file o => c do |t|
     warnings = %w[ all extra no-unused-parameter no-sign-compare no-missing-braces ].map { |w| '-W' + w }
@@ -26,9 +26,9 @@ file 'SOIL.a' => soil.map(&:o) do |t|
   sh 'ar', 'cr', t.name, *t.prerequisites
 end
 
-CLEAN << 'triangles.core'
-CLOBBER << 'triangles'
-file 'triangles' => [ 'triangles.o', 'SOIL.a' ] do |t|
+CLEAN << 'todd-cube.core'
+CLOBBER << 'todd-cube'
+file 'todd-cube' => [ 'todd-cube.o', 'SOIL.a' ] do |t|
   libraries = [
     'c',       # C standard library
     'm',       # C math library
@@ -48,7 +48,7 @@ file 'triangles' => [ 'triangles.o', 'SOIL.a' ] do |t|
   before_crt = %w[ /usr/lib/crt1.o /usr/lib/crti.o ]
   after_crt = %w[ /usr/lib/crtn.o ]
 
-  sh 'ld', '-o', t.name, *before_crt, 'triangles.o', 'SOIL.a', *paths, *libraries, *after_crt
+  sh 'ld', '-o', t.name, *before_crt, 'todd-cube.o', 'SOIL.a', *paths, *libraries, *after_crt
 end
 
 CLOBBER << 'include/vec.h'

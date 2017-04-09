@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdint.h>
 #include <math.h>
 
 #include <GL/glew.h>
@@ -30,6 +31,15 @@ struct camera camera = { 0.0, 0.0 };
 enum direction { DIR_NONE, DIR_N, DIR_NE, DIR_E, DIR_SE, DIR_S, DIR_SW, DIR_W, DIR_NW };
 enum direction direction = DIR_NONE;
 
+enum mov_keys {
+  KEY_UP    = 1,
+  KEY_RIGHT = 2,
+  KEY_DOWN  = 4,
+  KEY_LEFT  = 8,
+};
+
+uint8_t mov_keys = 0;
+
 int main(void) {
   // Create window and bind the current context to it
   GLFWwindow* window;
@@ -42,7 +52,7 @@ int main(void) {
     glfwWindowHint(GLFW_RESIZABLE, GL_FALSE);
 
     // Can make the window fullscreen by passing a monitor as the 4th argument
-    window = glfwCreateWindow(800, 600, "Triangles", NULL, NULL);
+    window = glfwCreateWindow(800, 600, "Todd cube", NULL, NULL);
 
     if (window == NULL) {
       printf("rip glfw window\n");
@@ -94,8 +104,8 @@ int main(void) {
   GLuint *textures;
 
   { struct textureOpts options[] = {
-      { "textures/todd.png",       GL_CLAMP_TO_EDGE,   GL_CLAMP_TO_EDGE },
-      //{ "textures/watermelon.png", GL_MIRRORED_REPEAT, GL_MIRRORED_REPEAT, },
+      { "textures/a.png",       GL_CLAMP_TO_EDGE,   GL_CLAMP_TO_EDGE },
+      { "textures/b.png", GL_MIRRORED_REPEAT, GL_MIRRORED_REPEAT, },
     };
 
     textures = load2DTextures(options, arrayLength(options));
@@ -167,6 +177,7 @@ int main(void) {
   }
 
 
+  glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
   glfwSetKeyCallback(window, keyCallback);
 
@@ -206,7 +217,7 @@ int main(void) {
     // Camera position
     if (direction != DIR_NONE) {
       float yaw = camera.yaw;
-      const float speed = 0.05;
+      const float speed = 0.15;
 
       switch(direction) {
       case DIR_NE: yaw +=  45.0; break;
@@ -225,10 +236,27 @@ int main(void) {
       position.x += speed * -sin(yaw);
     }
 
+    { printf("\e[0J\e[0;0H  %d\n%d %d %d\n", mov_keys & KEY_UP, mov_keys & KEY_LEFT, mov_keys & KEY_DOWN, mov_keys & KEY_RIGHT);
+
+      /*if ((mov_keys != KEY_UP + KEY_DOWN + KEY_LEFT + KEY_RIGHT) && (mov_keys != 0)) {
+        if   (mov_keys == KEY_UP) 
+      }*/
+
+      /*
+      if ((mov_keys & KEY_UP) && (mov_keys & KEY_DOWN) && (mov_keys & KEY_LEFT) && (mov_keys & KEY_RIGHT)) {
+      } else if ((mov_keys & KEY_UP) && (mov_keys & KEY_DOWN)) {
+        if      (mov_keys & KEY_LEFT)  yaw -= 90.0;
+        else if (mov_keys & KEY_RIGHT) yaw += 90.0;
+      } else if ((mov_keys & KEY_LEFT) && (mov_keys & KEY_RIGHT)) {
+        if      (mov_keys & KEY_UP)   yaw 
+      }
+      */
+    }
 
     // Camera direction
     { const float sensitivity = 2.0;
-      camera.yaw   -= (mouseOffset_x / sensitivity);
+
+      camera.yaw = fmod(camera.yaw - (mouseOffset_x / sensitivity), 360.0);
       camera.pitch -= (mouseOffset_y / sensitivity);
 
       mat4_t view = mat4_mul(
@@ -247,8 +275,27 @@ int main(void) {
 
     // Model position
     { mat4_t model = mat4_mul(
-        mat4_translate(vec3(0.0, -.5, -1.0)),
-        mat4_rotate_y(deg_to_rad(time * 45.0))
+        mat4_translate(vec3(0.0, 2.0, -1.0)),
+        mat4_mul(
+          mat4_scale(vec3(2.0, 2.0, 2.0)),
+          mat4_rotate_y(deg_to_rad(time * 45.0))
+        )
+      );
+
+      glUniformMatrix4fv(
+        glGetUniformLocation(shaders[0], "model"),
+        1, GL_FALSE, (const GLfloat *)model.ary
+      );
+    }
+
+    glBindVertexArray(VAO);
+    glDrawArrays(GL_TRIANGLES, 0, 36);
+    glBindVertexArray(0);
+
+    { glBindTexture(GL_TEXTURE_2D, textures[1]);
+      mat4_t model = mat4_mul(
+        mat4_translate(vec3(0.0, 10.0, -1.0)),
+        mat4_scale(vec3(24.0, 24.0, 24.0))
       );
 
       glUniformMatrix4fv(
@@ -259,7 +306,7 @@ int main(void) {
 
     // Perspective
     { mat4_t projection = mat4_perspective(
-        deg_to_rad(45.0), (float)width / (float)height, 0.1, 100.0
+        deg_to_rad(90.0), (float)width / (float)height, 0.1, 100.0
       );
 
       glUniformMatrix4fv(
@@ -282,6 +329,22 @@ int main(void) {
 
 
 void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mode) {
+  if (action == GLFW_PRESS) {
+    switch (key) {
+    case GLFW_KEY_W: mov_keys |= KEY_UP;    break;
+    case GLFW_KEY_D: mov_keys |= KEY_RIGHT; break;
+    case GLFW_KEY_S: mov_keys |= KEY_DOWN;  break;
+    case GLFW_KEY_A: mov_keys |= KEY_LEFT;  break;
+    }
+  } else if (action == GLFW_RELEASE) {
+    switch (key) {
+    case GLFW_KEY_W: mov_keys &= ~KEY_UP;    break;
+    case GLFW_KEY_D: mov_keys &= ~KEY_RIGHT; break;
+    case GLFW_KEY_S: mov_keys &= ~KEY_DOWN;  break;
+    case GLFW_KEY_A: mov_keys &= ~KEY_LEFT;  break;
+    }
+  }
+
   if (action == GLFW_PRESS) {
     if (direction == DIR_NONE) {
       switch (key) {
