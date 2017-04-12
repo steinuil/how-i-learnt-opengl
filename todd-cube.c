@@ -11,6 +11,9 @@
 
 #define arrayLength(x) (sizeof(x) / sizeof(x[0]))
 
+#define clamp(n, x, y) \
+  ((n) < (x) ? (x) : (n) > (y) ? (y) : (n))
+
 struct textureOpts {
   char *file;
   GLint wrapS;
@@ -48,7 +51,7 @@ int main(void) {
     glfwWindowHint(GLFW_RESIZABLE, GL_FALSE);
 
     // Can make the window fullscreen by passing a monitor as the 4th argument
-    window = glfwCreateWindow(800, 600, "Todd cube", NULL, NULL);
+    window = glfwCreateWindow(1280, 720, "Todd cube", NULL, NULL);
 
     if (window == NULL) {
       printf("rip glfw window\n");
@@ -259,7 +262,17 @@ no_movement:
     { const float sensitivity = 2.0;
 
       camera.yaw = fmod(camera.yaw - (mouseOffset_x / sensitivity), 360.0);
-      camera.pitch = fmod(camera.pitch - (mouseOffset_y / sensitivity), 360.0);
+      camera.pitch -= (mouseOffset_y / sensitivity);
+
+      camera.pitch = clamp(camera.pitch, -89.0, 89.0);
+
+      /*camera.pitch =
+        camera.pitch > 89.0 ? 
+        89.0 :
+        camera.pitch < -89.0 ?
+        -89.0 :
+        camera.pitch;
+      */
 
       mat4_t view = mat4_mul(
         mat4_rotate_x(deg_to_rad(camera.pitch)),
@@ -338,6 +351,13 @@ void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mode
     case GLFW_KEY_S: mov_keys |= KEY_DOWN;  break;
     case GLFW_KEY_A: mov_keys |= KEY_LEFT;  break;
 
+    case GLFW_KEY_SPACE:
+      position.y -= 0.1;
+      break;
+
+    case GLFW_KEY_LEFT_CONTROL:
+      position.y += 0.1;
+      break;
 
     case GLFW_KEY_Q:
       glfwSetWindowShouldClose(window, GL_TRUE);
@@ -366,19 +386,6 @@ void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mode
     case GLFW_KEY_A: mov_keys &= ~KEY_LEFT;  break;
     }
   }
-
-  /*
-    case GLFW_KEY_LEFT_CONTROL: {
-      position.y += 0.1;
-      break;
-    }
-
-    case GLFW_KEY_SPACE: {
-      position.y -= 0.1;
-      break;
-    }
-  }
-  */
 }
 
 
